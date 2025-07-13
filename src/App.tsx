@@ -1,19 +1,18 @@
-import React from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
+import Header from './components/Layout/Header';
+import AboutPage from './pages/AboutPage';
+import LoginPage from './pages/Auth/LoginPage';
+import SignupPage from './pages/Auth/SignupPage';
+import ContactPage from './pages/ContactPage';
+import MemoryGame from './pages/Games/MemoryGame';
+import WordGuessing from './pages/Games/WordGuessing';
 import HomePage from './pages/HomePage';
 import AlphabetLearning from './pages/Learn/AlphabetLearning';
 import NumberLearning from './pages/Learn/NumberLearning';
 import PracticeMode from './pages/Learn/PracticeMode';
-import QuizMode from './pages/Quiz/QuizMode';
 import FlashCards from './pages/Quiz/FlashCards';
-import MemoryGame from './pages/Games/MemoryGame';
-import WordGuessing from './pages/Games/WordGuessing';
-import LoginPage from './pages/Auth/LoginPage';
-import SignupPage from './pages/Auth/SignupPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
+import QuizMode from './pages/Quiz/QuizMode';
 
 function App() {
   return (

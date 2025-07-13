@@ -9,9 +9,12 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and Brand */}
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center mb-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg mr-4"></div>
-              <h2 className="text-2xl font-bold text-secondary-500 font-irish">BraillePlay</h2>
+            <div className="flex items-center mb-4 gap-3">
+              <img src="/images/figma/logo-mini.png" alt="Logo" className="w-10 h-10 sm:w-12 sm:h-12" />
+              <Link to="/" className="font-bold text-secondary-500 font-irish text-xl sm:text-2xl lg:text-3xl">
+                  <span className="text-[#2575FF]">Braille</span>
+                  <span className='text-white'>Play</span>
+                </Link>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-gray-300">Contact</p>

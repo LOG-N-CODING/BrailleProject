@@ -5,125 +5,217 @@ const Header: React.FC = () => {
   const [isLearnDropdownOpen, setIsLearnDropdownOpen] = useState(false);
   const [isQuizDropdownOpen, setIsQuizDropdownOpen] = useState(false);
   const [isGameDropdownOpen, setIsGameDropdownOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg mr-4"></div>
-            <Link to="/" className="text-2xl font-bold text-secondary-500 font-irish">
-              BraillePlay
+          <div style={{ height: "40px" }} />
+            {/* Logo */}
+            <div className="flex justify-center items-center mb-4 lg:mb-0">
+            <Link to="/" className="font-bold text-secondary-500 font-irish text-3xl sm:text-4xl lg:text-5xl">
+              <span className="text-[#2575FF]">Braille</span>
+                  <span className='text-black'>Play</span>
             </Link>
-          </div>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-primary-500 font-medium">
-              Home
+            </div>
+        <div className="flex justify-between items-center h-16 sm:h-20">
+          <div className='flex items-center'>
+            <Link to="/" className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg mr-2 sm:mr-4 flex items-center justify-center">
+              <img src="/images/figma/logo-mini.png" alt="Logo" className="w-10 h-10 sm:w-12 sm:h-12" />
             </Link>
+            {/* Navigation */}
+            <nav className="hidden lg:flex space-x-4 xl:space-x-8">
+              <Link to="/" className="text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base">
+                Home
+              </Link>
 
-            {/* Learn Dropdown */}
-            <div className="relative">
-              <button
-                className="flex items-center text-gray-700 hover:text-primary-500 font-medium"
-                onMouseEnter={() => setIsLearnDropdownOpen(true)}
-                onMouseLeave={() => setIsLearnDropdownOpen(false)}
-              >
-                Learn
-                <svg className="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              {isLearnDropdownOpen && (
-                <div
-                  className="absolute top-full left-0 w-48 bg-white shadow-lg rounded-md py-2 z-10"
+              {/* Learn Dropdown */}
+              <div className="relative">
+                <button
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
                   onMouseEnter={() => setIsLearnDropdownOpen(true)}
                   onMouseLeave={() => setIsLearnDropdownOpen(false)}
                 >
-                  <Link to="/learn/alphabet" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Alphabet Learning
-                  </Link>
-                  <Link to="/learn/numbers" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Number Learning
-                  </Link>
-                  <Link to="/learn/practice" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Practice Mode
-                  </Link>
-                </div>
-              )}
-            </div>
+                  Learn
+                  <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {isLearnDropdownOpen && (
+                  <div
+                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
+                    onMouseEnter={() => setIsLearnDropdownOpen(true)}
+                    onMouseLeave={() => setIsLearnDropdownOpen(false)}
+                  >
+                    <Link to="/learn/alphabet" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Alphabet Learning
+                    </Link>
+                    <Link to="/learn/numbers" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Number Learning
+                    </Link>
+                    <Link to="/learn/practice" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Practice Mode
+                    </Link>
+                  </div>
+                )}
+              </div>
 
-            {/* Quiz Dropdown */}
-            <div className="relative">
-              <button
-                className="flex items-center text-gray-700 hover:text-primary-500 font-medium"
-                onMouseEnter={() => setIsQuizDropdownOpen(true)}
-                onMouseLeave={() => setIsQuizDropdownOpen(false)}
-              >
-                Quiz
-                <svg className="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              {isQuizDropdownOpen && (
-                <div
-                  className="absolute top-full left-0 w-48 bg-white shadow-lg rounded-md py-2 z-10"
+              {/* Quiz Dropdown */}
+              <div className="relative">
+                <button
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
                   onMouseEnter={() => setIsQuizDropdownOpen(true)}
                   onMouseLeave={() => setIsQuizDropdownOpen(false)}
                 >
-                  <Link to="/quiz/image-to-braille" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Image-to-Braille
-                  </Link>
-                  <Link to="/quiz/math" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Math Quiz
-                  </Link>
-                </div>
-              )}
-            </div>
+                  Quiz
+                  <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {isQuizDropdownOpen && (
+                  <div
+                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
+                    onMouseEnter={() => setIsQuizDropdownOpen(true)}
+                    onMouseLeave={() => setIsQuizDropdownOpen(false)}
+                  >
+                    <Link to="/quiz/image-to-braille" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Image-to-Braille
+                    </Link>
+                    <Link to="/quiz/math" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Math Quiz
+                    </Link>
+                  </div>
+                )}
+              </div>
 
-            {/* Game Dropdown */}
-            <div className="relative">
-              <button
-                className="flex items-center text-gray-700 hover:text-primary-500 font-medium"
-                onMouseEnter={() => setIsGameDropdownOpen(true)}
-                onMouseLeave={() => setIsGameDropdownOpen(false)}
-              >
-                Game
-                <svg className="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              {isGameDropdownOpen && (
-                <div
-                  className="absolute top-full left-0 w-48 bg-white shadow-lg rounded-md py-2 z-10"
+              {/* Game Dropdown */}
+              <div className="relative">
+                <button
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
                   onMouseEnter={() => setIsGameDropdownOpen(true)}
                   onMouseLeave={() => setIsGameDropdownOpen(false)}
                 >
-                  <Link to="/game/typing" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Typing Game
-                  </Link>
-                  <Link to="/game/sprint" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                    Typing Sprint
-                  </Link>
-                </div>
-              )}
-            </div>
-          </nav>
+                  Game
+                  <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {isGameDropdownOpen && (
+                  <div
+                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
+                    onMouseEnter={() => setIsGameDropdownOpen(true)}
+                    onMouseLeave={() => setIsGameDropdownOpen(false)}
+                  >
+                    <Link to="/game/typing" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Typing Game
+                    </Link>
+                    <Link to="/game/sprint" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                      Typing Sprint
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </nav>
+          </div>
+
 
           {/* Auth Buttons */}
-          <div className="flex items-center space-x-4">
-            <Link to="/auth/login" className="text-gray-700 hover:text-primary-500 font-medium">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link to="/login" className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base">
               Sign in
             </Link>
             <Link
-              to="/auth/signup"
-              className="bg-primary-500 text-white px-4 py-2 rounded-md hover:bg-primary-600 transition-colors"
+              to="/signup"
+              className="bg-primary-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-md hover:bg-primary-600 transition-colors text-sm sm:text-base"
             >
               Sign up
             </Link>
+            {/* Hamburger Menu for mobile */}
+            <button
+              className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10"
+              aria-label="Open menu"
+              onClick={() => setIsMenuOpen(true)}
+            >
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Offcanvas Menu */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex m-0">
+                  <div className="flex-1" onClick={() => setIsMenuOpen(false)} />
+                  <div className="bg-white w-72 sm:w-80 h-full shadow-lg p-4 sm:p-6 relative">
+                    <button
+                      className="absolute top-3 right-3 sm:top-4 sm:right-4"
+                      aria-label="Close menu"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <nav className="flex flex-col space-y-4 mt-8 sm:mt-12">
+                      <Link to="/" className="text-gray-700 hover:text-primary-500 font-medium text-lg" onClick={() => setIsMenuOpen(false)}>
+                        Home
+                      </Link>
+                      <div>
+                        <span className="text-gray-700 font-medium text-lg">Learn</span>
+                        <div className="ml-2 flex flex-col mt-2">
+                          <Link to="/learn/alphabet" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Alphabet Learning
+                          </Link>
+                          <Link to="/learn/numbers" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Number Learning
+                          </Link>
+                          <Link to="/learn/practice" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Practice Mode
+                          </Link>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-700 font-medium text-lg">Quiz</span>
+                        <div className="ml-2 flex flex-col mt-2">
+                          <Link to="/quiz/image-to-braille" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Image-to-Braille
+                          </Link>
+                          <Link to="/quiz/math" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Math Quiz
+                          </Link>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-700 font-medium text-lg">Game</span>
+                        <div className="ml-2 flex flex-col mt-2">
+                          <Link to="/game/typing" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Typing Game
+                          </Link>
+                          <Link to="/game/sprint" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                            Typing Sprint
+                          </Link>
+                        </div>
+                      </div>
+                      <Link
+                        to="/auth/login"
+                        className="border border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white font-medium mt-6 text-center px-4 py-3 rounded-md transition-colors text-base"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        to="/auth/signup"
+                        className="bg-primary-500 text-white px-4 py-3 rounded-md hover:bg-primary-600 transition-colors mt-3 text-center text-base"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Sign up
+                      </Link>
+                    </nav>
+                  </div>
+                  
+              </div>
+            )}
+
           </div>
         </div>
       </div>
