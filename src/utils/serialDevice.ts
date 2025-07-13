@@ -40,8 +40,8 @@ export class BrailleSerialDevice {
       // 포트 요청
       this.port = await (navigator as any).serial.requestPort();
       
-      // 포트 열기 (Arduino 기본 보드레이트: 9600)
-      await this.port.open({ baudRate: 9600 });
+      // 포트 열기 (Arduino 기본 보드레이트: 115200)
+      await this.port.open({ baudRate: 115200 });
       
       this.isConnected = true;
       this.startReading();
