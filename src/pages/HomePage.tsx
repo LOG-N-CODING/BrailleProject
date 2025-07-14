@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import SectionHeader from '../components/UI/SectionHeader';
 
 const HomePage: React.FC = () => {
 // 더 느리고 부드러운 애니메이션 설정
@@ -77,7 +78,8 @@ const HomePage: React.FC = () => {
                 style={{ fontFamily: 'Irish Grover' }}
                 variants={fadeInUp}
               >
-                BraillePlay
+                <span className="text-[#2575FF]">Braille</span>
+                <span className='text-white'>Play</span>
               </motion.h1>
               <motion.h2 
                 className="text-xl sm:text-2xl lg:text-4xl font-light text-black mb-8"
@@ -87,7 +89,7 @@ const HomePage: React.FC = () => {
               </motion.h2>
               <motion.div variants={fadeInUp}>
                 <Link
-                  to="/learn/alphabet"
+                  to="/learn"
                   className="inline-flex items-center bg-white text-blue-600 border-2 border-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-lg sm:text-xl font-light hover:bg-blue-50 transition-colors"
                 >
                   Learn
@@ -126,15 +128,7 @@ const HomePage: React.FC = () => {
             viewport={{ once: false, amount: 0.3 }}
             variants={fadeInUp}
           >
-            <div className="flex justify-center items-center mb-6 sm:mb-8">
-              <div className="flex space-x-4 sm:space-x-8 items-center">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-                <h2 className="text-xl sm:text-3xl lg:text-4xl font-light text-gray-600 lg:px-20">Feature Preview</h2>
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-              </div>
-            </div>
+            <SectionHeader title="Feature Preview" />
           </motion.div>
 
           <motion.div 
@@ -150,19 +144,21 @@ const HomePage: React.FC = () => {
               variants={fadeInUp}
               whileHover={{ y: -5, transition: { duration: 0.6 } }}
             >
-              <div className="h-40 sm:h-48">
-                <img 
-                  src="/images/figma/learn-braille-card.png" 
-                  alt="Learn Braille" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Learn Braille</h3>
-                {/* <p className="text-sm text-gray-700 text-center leading-relaxed">
-                  Let's explore Braille letters together! Learn A–Z with example words and pronunciation support!
-                </p> */}
-              </div>
+              <Link to="/learn">
+                <div className="h-40 sm:h-48">
+                  <img 
+                    src="/images/figma/learn-braille-card.png" 
+                    alt="Learn Braille" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Learn Braille</h3>
+                  {/* <p className="text-sm text-gray-700 text-center leading-relaxed">
+                    Let's explore Braille letters together! Learn A–Z with example words and pronunciation support!
+                  </p> */}
+                </div>
+              </Link>
             </motion.div>
 
             {/* Quiz Zone Card */}
