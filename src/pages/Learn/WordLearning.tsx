@@ -54,12 +54,14 @@ const WordLearning: React.FC = () => {
     }
   }, [selectedCategory]);
 
+  const wordCount = 5; // 단어 개수
+
   const generateRandomTargets = () => {
     if (!selectedCategory) return;
     
     const categoryWords = wordsData[selectedCategory as keyof typeof wordsData];
     const shuffled = [...categoryWords].sort(() => Math.random() - 0.5);
-    setTargetWords(shuffled.slice(0, 5)); // 5 words per game
+    setTargetWords(shuffled.slice(0, wordCount));
     setCurrentIndex(0);
     setUserInput('');
     setGameCompleted(false);
@@ -91,15 +93,27 @@ const WordLearning: React.FC = () => {
       });
 
       if (currentIndex + 1 >= targetWords.length) {
-        setGameCompleted(true);
-        Swal.fire({
-          icon: 'success',
-          title: 'Completed!',
-          text: `All words completed!`,
-          confirmButtonText: 'Practice Again'
-        }).then(() => {
-          generateRandomTargets();
-        });
+        setTimeout(() => {
+          setGameCompleted(true);
+          // SweetAlert는 3초 후에 표시하여 Finish Button을 먼저 보여줌
+          setTimeout(() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Completed!',
+              text: `All letters completed!`,
+              confirmButtonText: 'Practice Again',
+              cancelButtonText: 'Back to Learning Menu',
+              showCancelButton: true,
+              allowOutsideClick: true
+            }).then((result) => {
+              if (result.isConfirmed) {
+              generateRandomTargets();
+              } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+              navigate('/learn');
+              }
+            });
+          }, 1500);
+        }, 1000);
       } else {
         setTimeout(() => {
           setCurrentIndex(currentIndex + 1);
@@ -388,6 +402,30 @@ const WordLearning: React.FC = () => {
           </div>
         </div>
 
+
+        {/* Finish Button */}
+        {gameCompleted && (
+          <div className="text-center mt-8 space-y-4">
+            <div className="text-2xl font-bold text-green-600 mb-4">
+              🎉 Congratulations! All words completed! 🎉
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={generateRandomTargets}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Practice Again
+              </button>
+              <button
+                onClick={() => navigate('/learn')}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Back to Learning Menu
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-3xl mx-auto text-center my-6">
             <button
                 onClick={() => setSelectedCategory('')}
@@ -396,20 +434,6 @@ const WordLearning: React.FC = () => {
                 ← Back to Categories
             </button>
         </div>
-
-        
-
-        {/* Finish Button */}
-        {gameCompleted && (
-          <div className="text-center mt-6">
-            <button
-              onClick={generateRandomTargets}
-              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all transform hover:scale-105"
-            >
-              Practice Again
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

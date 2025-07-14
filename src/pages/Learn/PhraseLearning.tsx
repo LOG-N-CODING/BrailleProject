@@ -46,12 +46,15 @@ const PhraseLearning: React.FC = () => {
     }
   }, [selectedCategory]);
 
+
+  const phraseCount = 3; // 구문 개수
+
   const generateRandomTargets = () => {
     if (!selectedCategory) return;
     
     const categoryPhrases = phrasesData[selectedCategory as keyof typeof phrasesData];
     const shuffled = [...categoryPhrases].sort(() => Math.random() - 0.5);
-    setTargetPhrases(shuffled.slice(0, 5)); // 5 phrases per game
+    setTargetPhrases(shuffled.slice(0, phraseCount)); // phrases per game
     setCurrentIndex(0);
     setUserInput('');
     setGameCompleted(false);
@@ -83,15 +86,27 @@ const PhraseLearning: React.FC = () => {
       });
 
       if (currentIndex + 1 >= targetPhrases.length) {
-        setGameCompleted(true);
-        Swal.fire({
-          icon: 'success',
-          title: 'Completed!',
-          text: `All phrases completed!`,
-          confirmButtonText: 'Practice Again'
-        }).then(() => {
-          generateRandomTargets();
-        });
+        setTimeout(() => {
+          setGameCompleted(true);
+          // SweetAlert는 3초 후에 표시하여 Finish Button을 먼저 보여줌
+          setTimeout(() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Completed!',
+              text: `All letters completed!`,
+              confirmButtonText: 'Practice Again',
+              cancelButtonText: 'Back to Learning Menu',
+              showCancelButton: true,
+              allowOutsideClick: true
+            }).then((result) => {
+              if (result.isConfirmed) {
+              generateRandomTargets();
+              } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+              navigate('/learn');
+              }
+            });
+          }, 1500);
+        }, 1000);
       } else {
         setTimeout(() => {
           setCurrentIndex(currentIndex + 1);
@@ -184,13 +199,7 @@ const PhraseLearning: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <button
-              onClick={() => navigate('/learn/alphabet-mode')}
-              className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              ← Back to Modes
-            </button>
+          <div className="max-w-3xl mx-auto text-center my-8">
             <SectionHeader title="Phrases - Choose Category" />
             <p className="text-gray-600 mb-6">Select a category to start the phrases learning</p>
           </div>
@@ -212,6 +221,16 @@ const PhraseLearning: React.FC = () => {
               </div>
             ))}
           </div>
+          
+          <div className="my-10 flex justify-center">
+            <button
+              onClick={() => navigate('/learn/alphabet-mode')}
+              className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              ← Back to Modes
+            </button>
+          </div>
+
         </div>
       </div>
     );
@@ -222,12 +241,7 @@ const PhraseLearning: React.FC = () => {
       <div className="mx-auto">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center my-8">
-          <button
-            onClick={() => setSelectedCategory('')}
-            className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-          >
-            ← Back to Categories
-          </button>
+          
           <SectionHeader title={`Phrases - ${selectedCategory}`} />
           <p className="text-gray-600 mb-6">Type the phrase using braille patterns - phrases are automatically checked when complete</p>
           
@@ -407,15 +421,35 @@ const PhraseLearning: React.FC = () => {
 
         {/* Finish Button */}
         {gameCompleted && (
-          <div className="text-center mt-6">
-            <button
-              onClick={generateRandomTargets}
-              className="px-8 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-teal-700 transition-all transform hover:scale-105"
-            >
-              Practice Again
-            </button>
+          <div className="text-center mt-8 space-y-4">
+            <div className="text-2xl font-bold text-green-600 mb-4">
+              🎉 Congratulations! All phrases completed! 🎉
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={generateRandomTargets}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Practice Again
+              </button>
+              <button
+                onClick={() => navigate('/learn')}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Back to Learning Menu
+              </button>
+            </div>
           </div>
         )}
+
+        <div className="max-w-3xl mx-auto text-center my-6">
+          <button
+              onClick={() => setSelectedCategory('')}
+              className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              ← Back to Categories
+            </button>
+        </div>
       </div>
     </div>
   );
