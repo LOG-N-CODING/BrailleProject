@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center bg-white py-12 lg:py-0">
+      <section className="relative flex items-center justify-center bg-white py-12 lg:py-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
             {/* Left Content */}
@@ -109,7 +109,7 @@ const HomePage: React.FC = () => {
               <img 
                 src="/images/figma/hero-3d-key.png" 
                 alt="3D Braille Key Device" 
-                className="max-w-full h-auto object-contain w-full sm:w-4/5 lg:w-full"
+                className="h-auto object-contain"
               />
             </motion.div>
           </div>
@@ -323,31 +323,87 @@ const HomePage: React.FC = () => {
 
       {/* CTA Section */}
       <motion.section 
-        className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800"
+        className="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 relative overflow-hidden"
         initial="initial"
         whileInView="animate"
         viewport={{ once: false, amount: 0.3 }}
         variants={fadeInUp}
       >
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6">Start Your Braille Journey Today!</h2>
-          <p className="text-lg sm:text-xl text-gray-200 mb-6 sm:mb-8">
-            Join thousands of learners who have mastered Braille with our interactive platform.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        {/* Background decoration */}
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
+          <div className="absolute top-32 right-20 w-16 h-16 bg-blue-300/20 rounded-full"></div>
+          <div className="absolute bottom-20 left-32 w-12 h-12 bg-purple-300/20 rounded-full"></div>
+          <div className="absolute bottom-10 right-10 w-24 h-24 bg-white/5 rounded-full"></div>
+        </div>
+        
+        <div className="max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: false }}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 sm:mb-8">
+              Start Your Braille Journey Today!
+            </h2>
+            <p className="text-xl sm:text-2xl text-blue-100 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed">
+              Join thousands of learners who have mastered Braille with our interactive platform. 
+              Experience accessible learning designed for everyone.
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            viewport={{ once: false }}
+          >
             <Link
-              to="/auth/signup"
-              className="w-full sm:w-auto bg-white text-blue-600 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center"
+              to="/signup"
+              className="group w-full sm:w-auto bg-white text-blue-600 px-8 sm:px-10 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg text-center inline-flex items-center justify-center"
             >
               Get Started Free
+              <svg className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </Link>
             <Link
-              to="/learn/alphabet"
-              className="w-full sm:w-auto border-2 border-white text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors text-center"
+              to="/learn/practice"
+              className="group w-full sm:w-auto border-2 border-white text-white px-8 sm:px-10 py-4 rounded-xl text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 transform hover:scale-105 text-center inline-flex items-center justify-center"
             >
-              Try Demo
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Try Practice
             </Link>
-          </div>
+          </motion.div>
+          
+          {/* Trust indicators */}
+          <motion.div 
+            className="mt-12 sm:mt-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            viewport={{ once: false }}
+          >
+            <p className="text-blue-200 text-sm sm:text-base mb-6">Trusted by learners worldwide</p>
+            <div className="flex justify-center items-center space-x-8 text-blue-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">1000+</div>
+                <div className="text-sm">Active Learners</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">95%</div>
+                <div className="text-sm">Success Rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">24/7</div>
+                <div className="text-sm">Support</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </motion.section>
     </div>
