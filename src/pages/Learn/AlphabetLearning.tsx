@@ -24,9 +24,11 @@ const AlphabetLearning: React.FC = () => {
     generateRandomTargets();
   }, []);
 
+  const letterCount = 10;
+
   const generateRandomTargets = () => {
     const shuffled = [...letters].sort(() => Math.random() - 0.5);
-    setTargetLetters(shuffled.slice(0, 10));
+    setTargetLetters(shuffled.slice(0, letterCount));
     setCurrentIndex(0);
     setUserInput([]);
     setGameCompleted(false);
@@ -60,14 +62,24 @@ const AlphabetLearning: React.FC = () => {
       if (currentIndex + 1 >= targetLetters.length) {
         setTimeout(() => {
           setGameCompleted(true);
-          Swal.fire({
-            icon: 'success',
-            title: 'Completed!',
-            text: `All letters completed!`,
-            confirmButtonText: 'Practice Again'
-          }).then(() => {
-            generateRandomTargets();
-          });
+          // SweetAlert는 3초 후에 표시하여 Finish Button을 먼저 보여줌
+          setTimeout(() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Completed!',
+              text: `All letters completed!`,
+              confirmButtonText: 'Practice Again',
+              cancelButtonText: 'Back to Learning Menu',
+              showCancelButton: true,
+              allowOutsideClick: true
+            }).then((result) => {
+              if (result.isConfirmed) {
+              generateRandomTargets();
+              } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+              navigate('/learn');
+              }
+            });
+          }, 1500);
         }, 1000);
       } else {
         setTimeout(() => {
@@ -280,15 +292,34 @@ const AlphabetLearning: React.FC = () => {
 
         {/* Finish Button */}
         {gameCompleted && (
-          <div className="text-center mt-6">
-            <button
-              onClick={generateRandomTargets}
-              className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105"
-            >
-              Practice Again
-            </button>
+          <div className="text-center mt-8 space-y-4">
+            <div className="text-2xl font-bold text-green-600 mb-4">
+              🎉 Congratulations! All letters completed! 🎉
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={generateRandomTargets}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Practice Again
+              </button>
+              <button
+                onClick={() => navigate('/learn')}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Back to Learning Menu
+              </button>
+            </div>
           </div>
         )}
+        <div className="my-10 flex justify-center">
+            <button
+              onClick={() => navigate('/learn/alphabet-mode')}
+              className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              ← Back to Modes
+            </button>
+          </div>
       </div>
     </div>
   );

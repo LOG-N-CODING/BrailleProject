@@ -1,293 +1,254 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrailleSerialDevice } from '../../utils/serialDevice';
-import { parseInputBits, findCharacterFromDots, generateBraillePattern, getDotsFromCharacter } from '../../utils/braille';
+import React, { useState, useEffect } from 'react';
+import { BRAILLE_ALPHABET, BRAILLE_NUMBERS, generateBraillePattern, parseInputBits, findCharacterFromDots, getDotsFromCharacter } from '../../utils/braille';
+import { SectionHeader } from '../../components/UI';
+import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
+import { useNavigate } from 'react-router-dom';
 
 const PracticeMode: React.FC = () => {
-  const [serialDevice, setSerialDevice] = useState<BrailleSerialDevice | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [currentChallenge, setCurrentChallenge] = useState<string>('');
-  const [userInput, setUserInput] = useState<string>('');
-  const [inputHistory, setInputHistory] = useState<Array<{input: string, correct: boolean, timestamp: Date}>>([]);
-  const [score, setScore] = useState(0);
-  const [practiceMode, setPracticeMode] = useState<'alphabet' | 'numbers' | 'mixed'>('alphabet');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
-  const [isListening, setIsListening] = useState(false);
-  const challengeInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const { isConnected, setOnDataCallback } = useBrailleDevice();
+  
+  // 현재 입력된 점자 패턴
+  const [activeDots, setActiveDots] = useState<number[]>([]);
+  const [currentBraillePattern, setCurrentBraillePattern] = useState<string>('⠀');
+  const [lastInputTime, setLastInputTime] = useState<Date | null>(null);
+  
+  // 일치하는 문자/숫자
+  const [matchingAlphabet, setMatchingAlphabet] = useState<string>('');
+  const [matchingNumber, setMatchingNumber] = useState<string>('');
+  const [showBrailleKeyboard, setShowBrailleKeyboard] = useState(true);
 
-  const challenges = {
-    alphabet: {
-      easy: ['A', 'B', 'C', 'D', 'E'],
-      medium: ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
-      hard: ['P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-    },
-    numbers: {
-      easy: ['1', '2', '3'],
-      medium: ['4', '5', '6', '7'],
-      hard: ['8', '9', '0']
-    },
-    mixed: {
-      easy: ['A', 'B', '1', '2'],
-      medium: ['C', 'D', 'E', '3', '4', '5'],
-      hard: ['F', 'G', 'H', 'I', '6', '7', '8', '9', '0']
-    }
-  };
-
+  // 시리얼 디바이스 데이터 수신 처리
   useEffect(() => {
-    generateNewChallenge();
-  }, [practiceMode, difficulty]);
-
-  useEffect(() => {
-    if (serialDevice && isConnected) {
+    if (isConnected) {
       const handleData = (data: number) => {
         const bits = parseInputBits(data);
-        const character = findCharacterFromDots(bits);
-        if (character) {
-          handleBrailleInput(character);
+        
+        if (bits.includes(-1)) {
+          // 백스페이스 - 입력 초기화
+          handleClear();
+        } else if (bits.length > 0 && !bits.includes(-1) && !bits.includes(-2)) {
+          setActiveDots(bits);
+          updateBrailleDisplay(bits);
+          setLastInputTime(new Date());
         }
       };
 
-      serialDevice.setOnDataCallback(handleData);
+      setOnDataCallback(handleData);
     }
-  }, [serialDevice, isConnected, currentChallenge]);
+  }, [isConnected]);
 
-  const connectDevice = async () => {
-    try {
-      const device = new BrailleSerialDevice();
-      await device.connect();
-      setSerialDevice(device);
-      setIsConnected(true);
-      setIsListening(true);
-    } catch (error) {
-      console.error('Failed to connect to device:', error);
-      alert('Failed to connect to Braille device. Make sure it\'s connected and try again.');
+  const handleClear = () => {
+    setActiveDots([]);
+    setCurrentBraillePattern('⠀');
+    setMatchingAlphabet('');
+    setMatchingNumber('');
+    setLastInputTime(null);
+  };
+
+  const updateBrailleDisplay = (dots: number[]) => {
+    if (dots.length === 0) {
+      setCurrentBraillePattern('⠀');
+      setMatchingAlphabet('');
+      setMatchingNumber('');
+      return;
     }
+
+    // 점자 패턴 생성
+    const pattern = generateBraillePattern(dots);
+    setCurrentBraillePattern(pattern);
+
+    // 알파벳 매칭
+    const alphabetMatch = Object.keys(BRAILLE_ALPHABET).find(
+      letter => JSON.stringify(BRAILLE_ALPHABET[letter]) === JSON.stringify(dots)
+    );
+    setMatchingAlphabet(alphabetMatch || '');
+
+    // 숫자 매칭
+    const numberMatch = Object.keys(BRAILLE_NUMBERS).find(
+      number => JSON.stringify(BRAILLE_NUMBERS[number]) === JSON.stringify(dots)
+    );
+    setMatchingNumber(numberMatch || '');
   };
 
-  const disconnectDevice = async () => {
-    if (serialDevice) {
-      await serialDevice.disconnect();
-      setSerialDevice(null);
-      setIsConnected(false);
-      setIsListening(false);
-    }
-  };
-
-  const generateNewChallenge = () => {
-    const challengeSet = challenges[practiceMode][difficulty];
-    const randomChallenge = challengeSet[Math.floor(Math.random() * challengeSet.length)];
-    setCurrentChallenge(randomChallenge);
-    setUserInput('');
-  };
-
-  const handleBrailleInput = (character: string) => {
-    setUserInput(character);
-    setTimeout(() => checkAnswer(character), 100);
-  };
-
-  const handleKeyboardInput = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      checkAnswer(userInput);
-    }
-  };
-
-  const checkAnswer = (input: string) => {
-    const correct = input.toUpperCase() === currentChallenge.toUpperCase();
+  const handleBrailleKeyClick = (dot: number) => {
+    const newActiveDots = activeDots.includes(dot) 
+      ? activeDots.filter(d => d !== dot) 
+      : [...activeDots, dot].sort((a, b) => a - b);
     
-    setInputHistory(prev => [
-      ...prev,
-      { input, correct, timestamp: new Date() }
-    ]);
-
-    if (correct) {
-      setScore(prev => prev + 1);
-      setTimeout(generateNewChallenge, 1000);
-    }
+    setActiveDots(newActiveDots);
+    updateBrailleDisplay(newActiveDots);
+    setLastInputTime(new Date());
   };
 
-  const resetPractice = () => {
-    setScore(0);
-    setInputHistory([]);
-    generateNewChallenge();
-  };
-
-  const getCurrentChallengeBraille = () => {
-    const dots = getDotsFromCharacter(currentChallenge);
-    return dots ? generateBraillePattern(dots) : '⠀';
+  const getDotPatternText = () => {
+    if (activeDots.length === 0) return '';
+    return activeDots.join(', ');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center items-center mb-8">
-            <div className="flex space-x-2">
-              <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-red-600 rounded-full"></div>
-              <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-red-600 rounded-full"></div>
-              <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-red-600 rounded-full"></div>
-              <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-red-600 rounded-full"></div>
-              <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-red-600 rounded-full"></div>
-            </div>
-          </div>
-          <h1 className="text-4xl font-light text-gray-600 mb-4">Practice Mode</h1>
-          <p className="text-lg text-gray-600">Practice Braille input with your Arduino device</p>
+    <div className="min-h-screen bg-gray-50">
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-16">
+        {/* Title Section */}
+        <div className="text-center mb-16">
+          <SectionHeader title="Practice Mode" />
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Practice braille typing and see the letter and number you type instantly!
+          </p>
         </div>
 
-        {/* Device Connection */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Arduino Device</h2>
-              <p className="text-gray-600">
-                {isConnected ? '✅ Connected and listening' : '❌ Not connected'}
-              </p>
+        {/* Main Practice Area */}
+        <div className="flex justify-center items-center gap-12 mb-16">
+          {/* Alphabet Card */}
+          <div className="bg-white rounded-3xl shadow-lg border-[3px] border-blue-500 p-8 w-80 h-96 flex flex-col justify-center items-center">
+            <div className="text-8xl font-bold text-blue-600 mb-4">
+              {currentBraillePattern}
             </div>
-            <div>
-              {!isConnected ? (
+            <div className="text-6xl font-bold text-blue-600 mb-4">
+              {matchingAlphabet || '?'}
+            </div>
+            <div className="text-3xl text-gray-600">
+              {getDotPatternText()}
+            </div>
+          </div>
+
+          {/* Number Card */}
+          <div className="bg-white rounded-3xl shadow-lg border-[3px] border-blue-500 p-8 w-80 h-96 flex flex-col justify-center items-center">
+            <div className="text-8xl font-bold text-blue-600 mb-4">
+              {currentBraillePattern}
+            </div>
+            <div className="text-6xl font-bold text-blue-600 mb-4">
+              {matchingNumber || '?'}
+            </div>
+            <div className="text-3xl text-gray-600">
+              {getDotPatternText()}
+            </div>
+          </div>
+
+          {/* Braille Keyboard - Conditional Display */}
+          {showBrailleKeyboard && (
+            <div className="bg-gradient-to-b from-blue-500 to-blue-700 rounded-3xl p-5 w-48 h-96">
+              <div className="grid grid-cols-2 gap-2 h-full place-items-center">
+                {/* Row 1 */}
                 <button
-                  onClick={connectDevice}
-                  className="bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 transition-colors"
-                >
-                  Connect Device
-                </button>
-              ) : (
-                <button
-                  onClick={disconnectDevice}
-                  className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
-                >
-                  Disconnect
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Practice Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Practice Mode</h3>
-            <div className="space-y-2">
-              {(['alphabet', 'numbers', 'mixed'] as const).map((mode) => (
-                <label key={mode} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="practiceMode"
-                    value={mode}
-                    checked={practiceMode === mode}
-                    onChange={(e) => setPracticeMode(e.target.value as any)}
-                    className="mr-2"
-                  />
-                  <span className="capitalize">{mode}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Difficulty</h3>
-            <div className="space-y-2">
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <label key={level} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value={level}
-                    checked={difficulty === level}
-                    onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="mr-2"
-                  />
-                  <span className="capitalize">{level}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Score</h3>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-success-500 mb-2">{score}</div>
-              <div className="text-sm text-gray-600">Correct answers</div>
-              <button
-                onClick={resetPractice}
-                className="mt-4 bg-gray-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Challenge Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">Current Challenge</h3>
-            <div className="text-center">
-              <div className="text-8xl font-bold text-warning-500 mb-4">{currentChallenge}</div>
-              <div className="text-6xl mb-4" style={{ fontFamily: 'monospace' }}>
-                {getCurrentChallengeBraille()}
-              </div>
-              <p className="text-gray-600">Input this character using your Braille device</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">Your Input</h3>
-            <div className="text-center">
-              <div className="text-8xl font-bold text-primary-500 mb-4">
-                {userInput || '?'}
-              </div>
-              
-              {/* Manual input for testing */}
-              <div className="mt-6">
-                <input
-                  ref={challengeInputRef}
-                  type="text"
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value.toUpperCase())}
-                  onKeyDown={handleKeyboardInput}
-                  placeholder="Or type manually for testing"
-                  className="w-full p-3 border border-gray-300 rounded-lg text-center text-lg"
-                  maxLength={1}
+                  onClick={() => handleBrailleKeyClick(1)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(1) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
                 />
                 <button
-                  onClick={() => checkAnswer(userInput)}
-                  className="mt-2 w-full bg-primary-500 text-white py-2 rounded-lg hover:bg-primary-600 transition-colors"
+                  onClick={() => handleBrailleKeyClick(4)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(4) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
+                />
+
+                {/* Row 2 */}
+                <button
+                  onClick={() => handleBrailleKeyClick(2)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(2) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
+                />
+                <button
+                  onClick={() => handleBrailleKeyClick(5)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(5) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
+                />
+
+                {/* Row 3 */}
+                <button
+                  onClick={() => handleBrailleKeyClick(3)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(3) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
+                />
+                <button
+                  onClick={() => handleBrailleKeyClick(6)}
+                  className={`w-16 h-16 rounded-xl border-[3px] transition-all ${
+                    activeDots.includes(6) 
+                      ? 'bg-green-200 border-green-400' 
+                      : 'bg-white border-green-400 hover:bg-green-50'
+                  }`}
+                />
+
+                {/* Control buttons */}
+                <button
+                  onClick={handleClear}
+                  className="w-16 h-16 bg-white rounded-xl border-[3px] border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center text-center"
+                  title="Backspace / Clear"
                 >
-                  Check Answer
+                  <span className="material-icons">backspace</span>
+                </button>
+                <button
+                  className="w-16 h-16 bg-white rounded-xl border-[3px] border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center text-center"
+                  title="Enter"
+                >
+                  <span className="material-icons">keyboard_return</span>
                 </button>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Floating Braille Keyboard Toggle Button */}
+        <button
+          onClick={() => setShowBrailleKeyboard(!showBrailleKeyboard)}
+          className={`fixed left-4 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full shadow-2xl transition-all duration-300 z-50 ${
+            showBrailleKeyboard 
+              ? 'bg-red-500 hover:bg-red-600' 
+              : 'bg-blue-500 hover:bg-blue-600'
+          } text-white font-bold text-xs flex flex-col items-center justify-center`}
+        >
+          <div className="text-lg">⠿</div>
+          <div>{showBrailleKeyboard ? 'Hide' : 'Show'}</div>
+        </button>
+
+        {/* Large Braille Display */}
+        <div className="flex justify-center space-x-8 mb-16">
+          <div className="bg-gray-100 rounded-full p-8 w-96 h-32 flex items-center justify-center">
+            <span className="text-8xl font-mono text-blue-600">
+              {currentBraillePattern}
+            </span>
+          </div>
+          
+          <div className="bg-gray-100 rounded-full p-8 w-96 h-32 flex items-center justify-center">
+            <span className="text-8xl font-bold text-blue-600">
+              {matchingAlphabet || matchingNumber || '?'}
+            </span>
+          </div>
+          
+          <div className="bg-gray-100 rounded-full p-8 w-96 h-32 flex items-center justify-center">
+            <span className="text-8xl font-bold text-blue-600">
+              {matchingNumber || '?'}
+            </span>
           </div>
         </div>
 
-        {/* Input History */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">Recent Attempts</h3>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {inputHistory.slice(-10).reverse().map((entry, index) => (
-              <div
-                key={index}
-                className={`flex items-center justify-between p-3 rounded-lg ${
-                  entry.correct ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  <span className={`text-2xl ${entry.correct ? 'text-green-600' : 'text-red-600'}`}>
-                    {entry.correct ? '✅' : '❌'}
-                  </span>
-                  <span className="text-lg font-semibold">{entry.input}</span>
-                </div>
-                <span className="text-sm text-gray-500">
-                  {entry.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
-            {inputHistory.length === 0 && (
-              <p className="text-center text-gray-500 py-8">No attempts yet. Start practicing!</p>
-            )}
-          </div>
+        {/* Back Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={() => navigate('/learn')}
+            className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            ← Back to Learning Menu
+          </button>
         </div>
       </div>
+
     </div>
   );
 };
