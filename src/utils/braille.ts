@@ -139,7 +139,10 @@ export function getDotsFromCharacter(char: string): number[] | null {
 // 배열 비교 함수
 function arraysEqual(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
-  return a.every((val, i) => val === b[i]);
+  // 순서와 무관하게 비교하기 위해 정렬
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedB = [...b].sort((x, y) => x - y);
+  return sortedA.every((val, i) => val === sortedB[i]);
 }
 
 // 점자 시각적 표현 생성 (6점 점자)

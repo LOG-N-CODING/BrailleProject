@@ -20,101 +20,95 @@ const Header: React.FC = () => {
             </Link>
             </div>
         <div className="flex justify-between items-center h-16 sm:h-20">
-          <div className='flex items-center'>
+          <div className='flex items-center justify-center'>
             <Link to="/" className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg mr-2 sm:mr-4 flex items-center justify-center">
               <img src="/images/figma/logo-mini.png" alt="Logo" className="w-10 h-10 sm:w-12 sm:h-12" />
             </Link>
             {/* Navigation */}
             <nav className="hidden lg:flex space-x-4 xl:space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base">
+                <Link
+                  to="/"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                  >
                 Home
-              </Link>
+                </Link>
 
               {/* Learn Dropdown */}
-              <div className="relative">
-                <button
-                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
-                  onMouseEnter={() => setIsLearnDropdownOpen(true)}
-                  onMouseLeave={() => setIsLearnDropdownOpen(false)}
+              <div 
+                className="relative group"
+                onMouseEnter={() => setIsLearnDropdownOpen(true)}
+                onMouseLeave={() => setIsLearnDropdownOpen(false)}
+              >
+                <Link
+                  to="/learn"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
                 >
                   Learn
                   <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
-                </button>
-                {isLearnDropdownOpen && (
-                  <div
-                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
-                    onMouseEnter={() => setIsLearnDropdownOpen(true)}
-                    onMouseLeave={() => setIsLearnDropdownOpen(false)}
-                  >
-                    <Link to="/learn/alphabet" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Alphabet Learning
-                    </Link>
-                    <Link to="/learn/numbers" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Number Learning
-                    </Link>
-                    <Link to="/learn/practice" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Practice Mode
-                    </Link>
-                  </div>
-                )}
+                </Link>
+                <div className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                  isLearnDropdownOpen ? 'opacity-100 visible transform translate-y-0' : 'opacity-0 invisible transform translate-y-2'
+                }`}>
+                  <Link to="/learn/alphabet-mode" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Alphabet Learning
+                  </Link>
+                  <Link to="/learn/numbers" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Number Learning
+                  </Link>
+                  <Link to="/learn/practice" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Practice Mode
+                  </Link>
+                </div>
               </div>
 
               {/* Quiz Dropdown */}
-              <div className="relative">
-                <button
-                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
-                  onMouseEnter={() => setIsQuizDropdownOpen(true)}
-                  onMouseLeave={() => setIsQuizDropdownOpen(false)}
-                >
+              <div 
+                className="relative group"
+                onMouseEnter={() => setIsQuizDropdownOpen(true)}
+                onMouseLeave={() => setIsQuizDropdownOpen(false)}
+              >
+                <button className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
                   Quiz
                   <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
-                {isQuizDropdownOpen && (
-                  <div
-                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
-                    onMouseEnter={() => setIsQuizDropdownOpen(true)}
-                    onMouseLeave={() => setIsQuizDropdownOpen(false)}
-                  >
-                    <Link to="/quiz/image-to-braille" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Image-to-Braille
-                    </Link>
-                    <Link to="/quiz/math" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Math Quiz
-                    </Link>
-                  </div>
-                )}
+                <div className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                  isQuizDropdownOpen ? 'opacity-100 visible transform translate-y-0' : 'opacity-0 invisible transform translate-y-2'
+                }`}>
+                  <Link to="/quiz/image-to-braille" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Image-to-Braille
+                  </Link>
+                  <Link to="/quiz/math" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Math Quiz
+                  </Link>
+                </div>
               </div>
 
               {/* Game Dropdown */}
-              <div className="relative">
-                <button
-                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base"
-                  onMouseEnter={() => setIsGameDropdownOpen(true)}
-                  onMouseLeave={() => setIsGameDropdownOpen(false)}
-                >
+              <div 
+                className="relative group"
+                onMouseEnter={() => setIsGameDropdownOpen(true)}
+                onMouseLeave={() => setIsGameDropdownOpen(false)}
+              >
+                <button className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
                   Game
                   <svg className="ml-1 h-3 w-3 xl:h-4 xl:w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
-                {isGameDropdownOpen && (
-                  <div
-                    className="absolute top-full left-0 w-44 xl:w-48 bg-white shadow-lg rounded-md py-2 z-10"
-                    onMouseEnter={() => setIsGameDropdownOpen(true)}
-                    onMouseLeave={() => setIsGameDropdownOpen(false)}
-                  >
-                    <Link to="/game/typing" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Typing Game
-                    </Link>
-                    <Link to="/game/sprint" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                      Typing Sprint
-                    </Link>
-                  </div>
-                )}
+                <div className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                  isGameDropdownOpen ? 'opacity-100 visible transform translate-y-0' : 'opacity-0 invisible transform translate-y-2'
+                }`}>
+                  <Link to="/game/typing" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Typing Game
+                  </Link>
+                  <Link to="/game/sprint" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors">
+                    Typing Sprint
+                  </Link>
+                </div>
               </div>
             </nav>
           </div>
@@ -127,7 +121,7 @@ const Header: React.FC = () => {
             </Link>
             <Link
               to="/signup"
-              className="bg-primary-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-md hover:bg-primary-600 transition-colors text-sm sm:text-base"
+              className="border border-primary-500 text-primary-500 px-3 py-2 sm:px-4 sm:py-2 rounded-md hover:bg-primary-500 hover:text-white transition-colors text-sm sm:text-base"
             >
               Sign up
             </Link>
@@ -161,9 +155,11 @@ const Header: React.FC = () => {
                         Home
                       </Link>
                       <div>
-                        <span className="text-gray-700 font-medium text-lg">Learn</span>
+                        <Link to="/learn" className="text-gray-700 hover:text-primary-500 font-medium text-lg" onClick={() => setIsMenuOpen(false)}>
+                          Learn
+                        </Link>
                         <div className="ml-2 flex flex-col mt-2">
-                          <Link to="/learn/alphabet" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
+                          <Link to="/learn/alphabet-mode" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
                             Alphabet Learning
                           </Link>
                           <Link to="/learn/numbers" className="text-gray-600 hover:text-primary-500 py-2 text-base" onClick={() => setIsMenuOpen(false)}>
