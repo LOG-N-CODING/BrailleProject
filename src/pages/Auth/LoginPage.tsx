@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    email: '',
+    password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     setError('');
   };
@@ -21,17 +24,13 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-
+    const { email, password } = formData;
     try {
-      // TODO: Implement Firebase Auth login
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
-      // Redirect to dashboard or previous page
-      console.log('Login successful:', formData.username);
-      
-    } catch (err) {
-      setError('Invalid username or password. Please try again.');
+      await signIn(email, password);
+      setError(null);
+      navigate('/');
+    } catch (err: any) {
+      setError('Invalid email or password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +46,9 @@ const LoginPage: React.FC = () => {
             <div className="flex space-x-3 sm:space-x-4 lg:space-x-8 items-center">
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light text-gray-600 px-4 sm:px-8 lg:px-12 xl:px-20">Login</h2>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light text-gray-600 px-4 sm:px-8 lg:px-12 xl:px-20">
+                Login
+              </h2>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
             </div>
@@ -58,10 +59,10 @@ const LoginPage: React.FC = () => {
             <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200 p-6 sm:p-8 lg:p-10">
               {/* Logo */}
               <div className="flex justify-center mb-6 sm:mb-8">
-                <img 
-                  src="/images/figma/logo.png" 
-                  alt="Logo" 
-                  className="w-32 h-28 sm:w-36 sm:h-32 md:w-40 md:h-36 lg:w-44 lg:h-40 object-contain" 
+                <img
+                  src="/images/figma/logo.png"
+                  alt="Logo"
+                  className="w-32 h-28 sm:w-36 sm:h-32 md:w-40 md:h-36 lg:w-44 lg:h-40 object-contain"
                 />
               </div>
 
@@ -70,8 +71,18 @@ const LoginPage: React.FC = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
                     <div className="flex">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 mr-2 mt-0.5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       <p className="text-red-700 text-xs sm:text-sm">{error}</p>
                     </div>
@@ -79,23 +90,29 @@ const LoginPage: React.FC = () => {
                 )}
 
                 <div>
-                  <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-800 mb-1 sm:mb-2">
-                    username
+                  <label
+                    htmlFor="email"
+                    className="block text-xs sm:text-sm font-medium text-gray-800 mb-1 sm:mb-2"
+                  >
+                    email
                   </label>
                   <input
                     type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
+                    id="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleInputChange}
                     required
                     className="w-full p-2 sm:p-3 border border-gray-300 rounded text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    placeholder="username"
+                    placeholder="email"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-800 mb-1 sm:mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-xs sm:text-sm font-medium text-gray-800 mb-1 sm:mb-2"
+                  >
                     password
                   </label>
                   <input
@@ -117,9 +134,25 @@ const LoginPage: React.FC = () => {
                 >
                   {isLoading ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       <span className="text-sm sm:text-base">Signing In...</span>
                     </>
@@ -136,10 +169,16 @@ const LoginPage: React.FC = () => {
                 </Link>
 
                 <div className="text-center space-y-1 sm:space-y-2">
-                  <Link to="/forgot-username" className="block text-gray-600 text-xs sm:text-sm hover:text-blue-600 transition-colors">
-                    Find your <span className="font-bold">username</span>
+                  <Link
+                    to="/forgot-email"
+                    className="block text-gray-600 text-xs sm:text-sm hover:text-blue-600 transition-colors"
+                  >
+                    Find your <span className="font-bold">email</span>
                   </Link>
-                  <Link to="/forgot-password" className="block text-gray-600 text-xs sm:text-sm hover:text-blue-600 transition-colors">
+                  <Link
+                    to="/forgot-password"
+                    className="block text-gray-600 text-xs sm:text-sm hover:text-blue-600 transition-colors"
+                  >
                     Forgot your <span className="font-bold">password?</span>
                   </Link>
                 </div>
