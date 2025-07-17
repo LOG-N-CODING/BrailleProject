@@ -2,6 +2,7 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Footer from './components/Layout/Footer';
 import Header from './components/Layout/Header';
 import { BrailleDeviceFloatingButton } from './components/UI';
+import { AuthProvider } from './contexts/AuthContext';
 import { BrailleDeviceProvider } from './contexts/BrailleDeviceContext';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/Auth/LoginPage';
@@ -17,9 +18,9 @@ import NumberLearning from './pages/Learn/NumberLearning';
 import PhraseLearning from './pages/Learn/PhraseLearning';
 import PracticeMode from './pages/Learn/PracticeMode';
 import WordLearning from './pages/Learn/WordLearning';
-import FlashCards from './pages/Quiz/FlashCards';
-import QuizMode from './pages/Quiz/QuizMode';
-import { AuthProvider } from './contexts/AuthContext';
+import ImageToBraille from './pages/Quiz/ImageToBraille';
+import MathQuiz from './pages/Quiz/MathQuiz';
+import QuizIndex from './pages/Quiz/QuizIndex';
 
 function App() {
   return (
@@ -42,8 +43,9 @@ function App() {
                 <Route path="/learn/practice" element={<PracticeMode />} />
 
                 {/* Quiz Routes */}
-                <Route path="/quiz" element={<QuizMode />} />
-                <Route path="/quiz/flashcards" element={<FlashCards />} />
+                <Route path="/quiz" element={<QuizIndex />} />
+                <Route path="/quiz/image-to-braille" element={<ImageToBraille />} />
+                <Route path="/quiz/math" element={<MathQuiz />} />
 
                 {/* Game Routes */}
                 <Route path="/games/memory" element={<MemoryGame />} />

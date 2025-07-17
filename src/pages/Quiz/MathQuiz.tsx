@@ -1,0 +1,510 @@
+import { motion } from 'framer-motion';
+import React, { useCallback, useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
+import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
+import { getRandomQuestion, MathQuestion } from '../../data/mathQuizData';
+import { BRAILLE_NUMBERS, getDotsFromCharacter, generateBraillePattern, parseInputBits, findCharacterFromDots } from '../../utils/braille';
+
+interface DigitCard {
+  digit: string;
+  isGuessed: boolean;
+  position: number;
+}
+
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+const MathQuiz: React.FC = () => {
+  const [currentQuestion, setCurrentQuestion] = useState<MathQuestion | null>(null);
+  const [digitCards, setDigitCards] = useState<DigitCard[]>([]);
+  const [guessedAnswer, setGuessedAnswer] = useState<string>('');
+  const [currentPosition, setCurrentPosition] = useState<number>(0);
+  const [showHint, setShowHint] = useState<boolean>(false);
+  const [keyboardVisible, setKeyboardVisible] = useState<boolean>(false);
+  const [activeDots, setActiveDots] = useState<number[]>([]);
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [score, setScore] = useState<number>(0);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(60); // 60초 제한
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
+
+  const { isConnected, setOnDataCallback } = useBrailleDevice();
+
+  // 타이머 효과
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(time => time - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleTimeUp();
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerActive, timeLeft]);
+
+  // 시간 종료 처리
+  const handleTimeUp = () => {
+    setIsTimerActive(false);
+    Swal.fire({
+      title: '시간 종료! ⏰',
+      html: `
+        <div class="text-center">
+          <p class="text-lg mb-4">제한 시간이 끝났습니다!</p>
+          <p class="mb-2">정답: <strong>${currentQuestion?.answer}</strong></p>
+          <div class="bg-gray-100 p-4 rounded-lg">
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
+            <p class="text-gray-600">정답률: ${totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0}%</p>
+          </div>
+        </div>
+      `,
+      icon: 'warning',
+      confirmButtonText: '다시 시작',
+      confirmButtonColor: '#3B82F6'
+    }).then(() => {
+      resetGame();
+    });
+  };
+
+  // 게임 초기화
+  const initializeQuestion = useCallback(() => {
+    const question = getRandomQuestion(difficulty);
+    setCurrentQuestion(question);
+    
+    const answerStr = question.answer.toString();
+    const cards: DigitCard[] = answerStr.split('').map((digit, index) => ({
+      digit,
+      isGuessed: false,
+      position: index
+    }));
+    
+    setDigitCards(cards);
+    setGuessedAnswer('');
+    setCurrentPosition(0);
+    setShowHint(false);
+    setActiveDots([]);
+    setTimeLeft(60);
+    setIsTimerActive(true);
+  }, [difficulty]);
+
+  // 게임 리셋
+  const resetGame = () => {
+    setScore(0);
+    setTotalQuestions(0);
+    setTimeLeft(60);
+    setIsTimerActive(false);
+    initializeQuestion();
+  };
+
+  // 초기 로드
+  useEffect(() => {
+    initializeQuestion();
+  }, [initializeQuestion]);
+
+  // 브레일 장치 입력 처리
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const handleBrailleInput = (data: number) => {
+      const bits = parseInputBits(data);
+      
+      if (bits.includes(-1)) {
+        handleBackspace();
+      } else if (bits.includes(-2)) {
+        handleNextPosition();
+      } else if (bits.length > 0) {
+        setActiveDots(bits);
+        const character = findCharacterFromDots(bits);
+        // 숫자만 허용
+        if (character && /^\d$/.test(character)) {
+          handleDigitInput(character);
+        }
+      }
+    };
+
+    setOnDataCallback(handleBrailleInput);
+  }, [isConnected]);
+
+  // 숫자 입력 처리
+  const handleDigitInput = (digit: string) => {
+    if (!currentQuestion || currentPosition >= currentQuestion.answer.toString().length) return;
+
+    const correctDigit = currentQuestion.answer.toString()[currentPosition];
+    
+    if (digit === correctDigit) {
+      // 정답
+      const newDigitCards = [...digitCards];
+      newDigitCards[currentPosition].isGuessed = true;
+      setDigitCards(newDigitCards);
+      
+      const newGuessedAnswer = guessedAnswer + digit;
+      setGuessedAnswer(newGuessedAnswer);
+      
+      // 다음 위치로 이동
+      setCurrentPosition(currentPosition + 1);
+      setActiveDots([]);
+      
+      // 답 완성 체크
+      if (newGuessedAnswer === currentQuestion.answer.toString()) {
+        handleQuestionComplete();
+      }
+    } else {
+      // 오답
+      Swal.fire({
+        title: '틀렸습니다!',
+        text: `올바른 숫자는 '${correctDigit}' 입니다.`,
+        icon: 'error',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setActiveDots([]);
+    }
+  };
+
+  // 백스페이스 처리
+  const handleBackspace = () => {
+    if (currentPosition > 0) {
+      const newPosition = currentPosition - 1;
+      const newDigitCards = [...digitCards];
+      newDigitCards[newPosition].isGuessed = false;
+      setDigitCards(newDigitCards);
+      
+      setCurrentPosition(newPosition);
+      setGuessedAnswer(guessedAnswer.slice(0, -1));
+      setActiveDots([]);
+    }
+  };
+
+  // 다음 위치로 이동
+  const handleNextPosition = () => {
+    if (currentPosition < digitCards.length - 1) {
+      setCurrentPosition(currentPosition + 1);
+      setActiveDots([]);
+    }
+  };
+
+  // 문제 완성 처리
+  const handleQuestionComplete = () => {
+    setIsTimerActive(false);
+    setScore(score + 1);
+    setTotalQuestions(totalQuestions + 1);
+    
+    const accuracy = Math.round(((score + 1) / (totalQuestions + 1)) * 100);
+    
+    Swal.fire({
+      title: '정답입니다! 🎉',
+      html: `
+        <div class="text-center">
+          <p class="text-lg mb-2">답: <strong>${currentQuestion?.answer}</strong></p>
+          <p class="text-blue-600">현재 정답률: ${accuracy}%</p>
+          <p class="text-sm text-gray-600 mt-2">남은 시간: ${timeLeft}초</p>
+        </div>
+      `,
+      icon: 'success',
+      showCancelButton: true,
+      confirmButtonText: '다음 문제',
+      cancelButtonText: '퀴즈 종료',
+      confirmButtonColor: '#3B82F6',
+      cancelButtonColor: '#6B7280'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        initializeQuestion();
+      } else {
+        showFinalResults();
+      }
+    });
+  };
+
+  // 최종 결과 표시
+  const showFinalResults = () => {
+    const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+    let message = '';
+    let icon: 'success' | 'info' | 'warning' = 'info';
+    
+    if (accuracy >= 90) {
+      message = '수학 천재네요! 완벽합니다! 🏆';
+      icon = 'success';
+    } else if (accuracy >= 70) {
+      message = '훌륭합니다! 수학 실력이 뛰어나네요! 🎯';
+      icon = 'success';
+    } else if (accuracy >= 50) {
+      message = '괜찮습니다! 좀 더 연습하면 완벽해질 거예요! 📚';
+      icon = 'info';
+    } else {
+      message = '아직 연습이 더 필요해요. 포기하지 마세요! 💪';
+      icon = 'warning';
+    }
+    
+    Swal.fire({
+      title: '수학 퀴즈 완료!',
+      html: `
+        <div class="text-center">
+          <p class="text-lg mb-4">${message}</p>
+          <div class="bg-gray-100 p-4 rounded-lg">
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
+            <p class="text-gray-600">정답률: ${accuracy}%</p>
+          </div>
+        </div>
+      `,
+      icon,
+      confirmButtonText: '다시 시작',
+      showCancelButton: true,
+      cancelButtonText: '종료',
+      confirmButtonColor: '#3B82F6'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        resetGame();
+      }
+    });
+  };
+
+  // 힌트 표시
+  const toggleHint = () => {
+    setShowHint(!showHint);
+  };
+
+  // 점자 키보드 토글
+  const toggleKeyboard = () => {
+    setKeyboardVisible(!keyboardVisible);
+  };
+
+  // 수동 숫자 입력
+  const handleManualInput = (digit: string) => {
+    handleDigitInput(digit);
+  };
+
+  // 문제 건너뛰기
+  const skipQuestion = () => {
+    Swal.fire({
+      title: '문제를 건너뛰시겠습니까?',
+      html: `
+        <div class="text-center">
+          <p class="mb-2">정답은 <strong>${currentQuestion?.answer}</strong> 입니다.</p>
+          <p class="text-sm text-gray-600">건너뛴 문제는 오답으로 처리됩니다.</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '다음 문제',
+      cancelButtonText: '계속하기',
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#6B7280'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setTotalQuestions(totalQuestions + 1);
+        initializeQuestion();
+      }
+    });
+  };
+
+  if (!currentQuestion) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl">수학 문제를 로드하는 중...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      {/* 브레일 키보드 토글 버튼 */}
+      <button
+        onClick={toggleKeyboard}
+        className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
+        title="점자 키보드 토글"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      <div className="max-w-6xl mx-auto px-4">
+        {/* 헤더 */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl font-light text-gray-700 mb-4">Math Quiz</h1>
+          <p className="text-lg text-gray-600">
+            수학 문제를 풀고 답을 점자로 입력해보세요!
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600 font-semibold">정답:</span>
+              <span className="text-green-600 font-bold text-lg">{score}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">총 문제:</span>
+              <span className="text-gray-700 font-bold text-lg">{totalQuestions}</span>
+            </div>
+            {totalQuestions > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-blue-600">정답률:</span>
+                <span className="text-blue-600 font-bold text-lg">
+                  {Math.round((score / totalQuestions) * 100)}%
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className={`font-semibold ${timeLeft <= 10 ? 'text-red-600' : 'text-orange-600'}`}>
+                시간: {timeLeft}초
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 난이도 선택 */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-center mb-8"
+        >
+          <div className="bg-white rounded-lg shadow-md p-2 flex gap-2">
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => (
+              <button
+                key={level}
+                onClick={() => {
+                  setDifficulty(level);
+                  setIsTimerActive(false);
+                  initializeQuestion();
+                }}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  difficulty === level
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {level === 'easy' ? '쉬움' : level === 'medium' ? '보통' : '어려움'}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* 메인 콘텐츠 */}
+        <div className="space-y-8">
+          {/* 수학 문제 */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-center"
+          >
+            <div className="bg-gray-100 rounded-3xl p-8 shadow-lg max-w-4xl w-full">
+              <h2 className="text-6xl font-normal text-blue-600 text-center">
+                {currentQuestion.question}
+              </h2>
+              <button
+                onClick={toggleHint}
+                className="mt-4 mx-auto block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition-colors"
+              >
+                힌트
+              </button>
+            </div>
+          </motion.div>
+
+          {/* 힌트 */}
+          {showHint && currentQuestion.hint && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center bg-yellow-100 border border-yellow-300 rounded-lg p-4 mx-auto max-w-md"
+            >
+              <p className="text-yellow-800">💡 {currentQuestion.hint}</p>
+            </motion.div>
+          )}
+
+          {/* 숫자 카드들 */}
+          <div className="flex justify-center">
+            <div className="flex gap-2">
+              {digitCards.map((card, index) => (
+                <motion.div
+                  key={`${currentQuestion.id}-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`w-16 h-20 rounded-xl border-2 flex items-center justify-center text-2xl font-bold shadow-lg transition-all ${
+                    card.isGuessed
+                      ? 'bg-green-100 border-green-400 text-blue-600'
+                      : currentPosition === index
+                      ? 'bg-red-100 border-red-400 text-white'
+                      : 'bg-white border-gray-300 text-gray-400'
+                  }`}
+                >
+                  {card.isGuessed ? card.digit : currentPosition === index ? '?' : ''}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* 점자 입력 표시 */}
+          {activeDots.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-center"
+            >
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
+                <p className="text-blue-800 text-center">
+                  입력된 점자: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* 컨트롤 버튼들 */}
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={skipQuestion}
+              className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              건너뛰기
+            </button>
+            <button
+              onClick={initializeQuestion}
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            >
+              새 문제
+            </button>
+          </div>
+        </div>
+
+        {/* 점자 숫자 참조 */}
+        {keyboardVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="mt-12 bg-white rounded-lg shadow-lg p-6"
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+              점자 숫자 참조
+            </h3>
+            <div className="grid grid-cols-5 sm:grid-cols-10 gap-4">
+              {Object.entries(BRAILLE_NUMBERS).map(([number, dots]) => {
+                const brailleChar = generateBraillePattern(dots);
+                
+                return (
+                  <motion.button
+                    key={number}
+                    onClick={() => handleManualInput(number)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex flex-col items-center p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg transition-colors"
+                  >
+                    <div className="text-4xl text-blue-600 mb-2">{brailleChar}</div>
+                    <div className="text-lg font-bold text-gray-700">{number}</div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MathQuiz;
