@@ -101,7 +101,7 @@ const Header: React.FC = () => {
                 onMouseEnter={() => setIsQuizDropdownOpen(true)}
                 onMouseLeave={() => setIsQuizDropdownOpen(false)}
               >
-                <button className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
+                <Link to="/quiz" className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
                   Quiz
                   <svg
                     className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                </button>
+                </Link>
                 <div
                   className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
                     isQuizDropdownOpen
@@ -293,7 +293,7 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-700 font-medium text-lg">Quiz</span>
+                      <Link to="/quiz" className="text-gray-700 font-medium text-lg hover:text-primary-500">Quiz</Link>
                       <div className="ml-2 flex flex-col mt-2">
                         <Link
                           to="/quiz/image-to-braille"
