@@ -25,7 +25,7 @@ const TypingSprint: React.FC = () => {
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   
   // Game duration in seconds - 게임 지속시간 (초)
-  const GAME_DURATION = 10;
+  const GAME_DURATION = 60;
   
   const [gameStats, setGameStats] = useState<GameStats>({
     score: 0,
