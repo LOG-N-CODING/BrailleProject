@@ -10,33 +10,33 @@ const Header: React.FC = () => {
   const { signOut, user } = useAuth();
 
   return (
-    <header className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white shadow-sm overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div style={{ height: '40px' }} />
         {/* Logo */}
         <div className="flex justify-center items-center mb-4 lg:mb-0">
           <Link
             to="/"
-            className="font-bold text-secondary-500 font-irish text-3xl sm:text-4xl lg:text-5xl"
+            className="font-bold text-secondary-500 font-irish text-2xl sm:text-3xl md:text-4xl lg:text-5xl break-words"
           >
             <span className="text-[#2575FF]">Braille</span>
             <span className="text-black">Play</span>
           </Link>
         </div>
-        <div className="flex justify-between items-center h-16 sm:h-20">
+        <div className="flex justify-between items-center h-14 sm:h-16 lg:h-20">
           <div className="flex items-center justify-center">
             <Link
               to="/"
-              className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg mr-2 sm:mr-4 flex items-center justify-center"
+              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-lg mr-2 sm:mr-4 flex items-center justify-center flex-shrink-0"
             >
               <img
                 src="/images/figma/logo-mini.png"
                 alt="Logo"
-                className="w-10 h-10 sm:w-12 sm:h-12"
+                className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 max-w-full max-h-full object-contain"
               />
             </Link>
             {/* Navigation */}
-            <nav className="hidden lg:flex space-x-4 xl:space-x-8">
+            <nav className="hidden lg:flex space-x-2 xl:space-x-4 2xl:space-x-8 overflow-x-hidden">
               <Link
                 to="/"
                 className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
@@ -184,6 +184,7 @@ const Header: React.FC = () => {
           {/* Auth Buttons */}
           <div className="flex items-center gap-2 sm:gap-4">
             {user ? (
+              <>
               <Link
                 to="/"
                 onClick={signOut}
@@ -191,6 +192,13 @@ const Header: React.FC = () => {
               >
                 Sign out
               </Link>
+              <Link
+                to="/my"
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-gray-700 hover:text-primary-500"
+              >
+                <span className="material-icons text-xl sm:text-2xl">person</span>
+              </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -331,16 +339,25 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     {user ? (
-                      <Link
-                        to="/"
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          signOut();
-                        }}
-                        className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
-                      >
-                        Sign out
-                      </Link>
+                      <>
+                        <Link
+                          to="/my"
+                          className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          My
+                        </Link>
+                        <Link
+                          to="/"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            signOut();
+                          }}
+                          className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
+                        >
+                          Sign out
+                        </Link>
+                      </>
                     ) : (
                       <>
                         <Link

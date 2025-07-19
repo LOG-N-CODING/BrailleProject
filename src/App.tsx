@@ -7,6 +7,7 @@ import { BrailleDeviceProvider } from './contexts/BrailleDeviceContext';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/Auth/LoginPage';
 import SignupPage from './pages/Auth/SignupPage';
+import MyPage from './pages/Auth/MyPage';
 import ContactPage from './pages/ContactPage';
 import GameIndex from './pages/Games/GameIndex';
 import TypingGame from './pages/Games/TypingGame';
@@ -28,9 +29,9 @@ function App() {
     <AuthProvider>
       <BrailleDeviceProvider>
         <Router>
-          <div className="min-h-screen bg-white flex flex-col">
+          <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
             <Header />
-            <main className="flex-1">
+            <main className="flex-1 overflow-x-hidden">
               <Routes>
                 <Route path="/" element={<HomePage />} />
 
@@ -56,6 +57,9 @@ function App() {
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+
+                {/* My Page */}
+                <Route path="/my" element={<MyPage />} />
 
                 {/* Other Pages */}
                 <Route path="/about" element={<AboutPage />} />
