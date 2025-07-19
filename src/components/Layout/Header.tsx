@@ -10,7 +10,7 @@ const Header: React.FC = () => {
   const { signOut, user } = useAuth();
 
   return (
-    <header className="bg-white shadow-sm overflow-x-hidden">
+    <header className="bg-white shadow-sm ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div style={{ height: '40px' }} />
         {/* Logo */}
@@ -36,7 +36,7 @@ const Header: React.FC = () => {
               />
             </Link>
             {/* Navigation */}
-            <nav className="hidden lg:flex space-x-2 xl:space-x-4 2xl:space-x-8 overflow-x-hidden">
+            <nav className="hidden lg:flex space-x-2 xl:space-x-4 2xl:space-x-8 ">
               <Link
                 to="/"
                 className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"

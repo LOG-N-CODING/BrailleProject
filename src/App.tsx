@@ -29,9 +29,9 @@ function App() {
     <AuthProvider>
       <BrailleDeviceProvider>
         <Router>
-          <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
+          <div className="min-h-screen bg-white flex flex-col ">
             <Header />
-            <main className="flex-1 overflow-x-hidden">
+            <main className="flex-1 ">
               <Routes>
                 <Route path="/" element={<HomePage />} />
 

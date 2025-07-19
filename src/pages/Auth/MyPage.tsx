@@ -175,7 +175,7 @@ const MyPage: React.FC = () => {
     ];
 
     return (
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className="w-full max-w-full ">
         {/* Profile Section */}
         <div className="flex justify-center mb-8">
           <div className="relative">
@@ -510,7 +510,7 @@ const MyPage: React.FC = () => {
     ];
 
     return (
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className="w-full max-w-full ">
         <div className="bg-[#05071c] rounded-xl shadow-lg border border-gray-800 p-6 sm:p-8">
 
           {/* Progress Summary */}
@@ -622,7 +622,7 @@ const MyPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ">
       <div className="container mx-auto px-4 py-6 sm:py-8 w-full max-w-full">
         {/* Header Section */}
         <div className="text-center mb-6 sm:mb-8">
@@ -669,7 +669,7 @@ const MyPage: React.FC = () => {
         </div>
 
         {/* Content Section */}
-        <div className="max-w-6xl mx-auto w-full overflow-x-hidden">
+        <div className="max-w-6xl mx-auto w-full ">
           {activeTab === 'learning' && renderLearningStage()}
           {activeTab === 'game' && renderGameHistory()}
           {activeTab === 'badges' && renderBadges()}
