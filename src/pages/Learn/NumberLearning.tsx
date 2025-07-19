@@ -41,10 +41,25 @@ const NumberLearning: React.FC = () => {
     const targetDots = getDotsFromCharacter(targetNumber);
     
     if (targetDots && JSON.stringify(inputDots.sort()) === JSON.stringify(targetDots.sort())) {
-      // 숫자 발음
-      const utterance = new SpeechSynthesisUtterance(targetNumber);
+      // 숫자를 영어 단어로 변환해서 발음
+      const numberWords: { [key: string]: string } = {
+        '0': 'zero',
+        '1': 'one',
+        '2': 'two', 
+        '3': 'three',
+        '4': 'four',
+        '5': 'five',
+        '6': 'six',
+        '7': 'seven',
+        '8': 'eight',
+        '9': 'nine'
+      };
+      
+      const wordToSpeak = numberWords[targetNumber] || targetNumber;
+      const utterance = new SpeechSynthesisUtterance(wordToSpeak);
       utterance.rate = 0.8;
       utterance.pitch = 1;
+      utterance.volume = 0.8;
       utterance.lang = 'en-US';
       speechSynthesis.speak(utterance);
       

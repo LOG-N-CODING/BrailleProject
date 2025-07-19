@@ -99,8 +99,8 @@ const ImageToBraille: React.FC = () => {
     } else {
       // 오답
       Swal.fire({
-        title: '틀렸습니다!',
-        text: `올바른 문자는 '${currentLetter}' 입니다.`,
+        title: 'Incorrect!',
+        text: `The correct character is '${currentLetter}'.`,
         icon: 'error',
         timer: 2000,
         showConfirmButton: false
@@ -141,34 +141,34 @@ const ImageToBraille: React.FC = () => {
     let icon: 'success' | 'info' | 'warning' = 'info';
     
     if (accuracy >= 90) {
-      message = '완벽합니다! 점자 마스터네요! 🎉';
+      message = 'Perfect! You are a Braille master! 🎉';
       icon = 'success';
     } else if (accuracy >= 70) {
-      message = '훌륭합니다! 더 연습하면 완벽해질 거예요! 👍';
+      message = 'Excellent! With more practice, you will be perfect! 👍';
       icon = 'success';
     } else if (accuracy >= 50) {
-      message = '괜찮습니다! 조금 더 연습해보세요! 💪';
+      message = 'Good job! Practice a little more! 💪';
       icon = 'info';
     } else {
-      message = '아직 연습이 더 필요해요. 포기하지 마세요! 🌟';
+      message = 'You need more practice. Don\'t give up! 🌟';
       icon = 'warning';
     }
     
     Swal.fire({
-      title: '퀴즈 완료!',
+      title: 'Quiz Complete!',
       html: `
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
             <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuizzes}</p>
-            <p class="text-gray-600">정답률: ${accuracy}%</p>
+            <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
         </div>
       `,
       icon,
-      confirmButtonText: '다시 시작',
+      confirmButtonText: 'Restart',
       showCancelButton: true,
-      cancelButtonText: '종료',
+      cancelButtonText: 'Exit',
       confirmButtonColor: '#3B82F6'
     }).then((result) => {
       if (result.isConfirmed) {
@@ -188,17 +188,17 @@ const ImageToBraille: React.FC = () => {
     const accuracy = Math.round(((score + 1) / (totalQuizzes + 1)) * 100);
     
     Swal.fire({
-      title: '정답입니다! 🎉',
+      title: 'Correct! 🎉',
       html: `
         <div class="text-center">
-          <p class="text-lg mb-2">'<strong>${currentQuiz?.answer}</strong>'을(를) 맞추셨습니다!</p>
-          <p class="text-blue-600">현재 정답률: ${accuracy}%</p>
+          <p class="text-lg mb-2">You got '<strong>${currentQuiz?.answer}</strong>' correct!</p>
+          <p class="text-blue-600">Current accuracy: ${accuracy}%</p>
         </div>
       `,
       icon: 'success',
       showCancelButton: true,
-      confirmButtonText: '다음 문제',
-      cancelButtonText: '퀴즈 종료',
+      confirmButtonText: 'Next Question',
+      cancelButtonText: 'End Quiz',
       confirmButtonColor: '#3B82F6',
       cancelButtonColor: '#6B7280'
     }).then((result) => {
@@ -226,20 +226,20 @@ const ImageToBraille: React.FC = () => {
     handleCharacterInput(letter);
   };
 
-  // 퀴즈 건너뛰기
+  // 퀴즈 Pass
   const skipQuiz = () => {
     Swal.fire({
-      title: '문제를 건너뛰시겠습니까?',
+      title: 'Skip this question?',
       html: `
         <div class="text-center">
-          <p class="mb-2">정답은 '<strong>${currentQuiz?.answer}</strong>' 입니다.</p>
-          <p class="text-sm text-gray-600">건너뛴 문제는 오답으로 처리됩니다.</p>
+          <p class="mb-2">The answer is '<strong>${currentQuiz?.answer}</strong>'.</p>
+          <p class="text-sm text-gray-600">Skipped questions will be counted as incorrect.</p>
         </div>
       `,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: '다음 문제',
-      cancelButtonText: '계속하기',
+      confirmButtonText: 'Next Question',
+      cancelButtonText: 'Continue',
       confirmButtonColor: '#EF4444',
       cancelButtonColor: '#6B7280'
     }).then((result) => {
@@ -253,7 +253,7 @@ const ImageToBraille: React.FC = () => {
   if (!currentQuiz) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">퀴즈를 로드하는 중...</div>
+        <div className="text-xl">Loading quiz...</div>
       </div>
     );
   }
@@ -264,7 +264,7 @@ const ImageToBraille: React.FC = () => {
       <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
-        title="점자 키보드 토글"
+        title="Toggle Braille Keyboard"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -280,20 +280,20 @@ const ImageToBraille: React.FC = () => {
         >
           <h1 className="text-4xl font-light text-gray-700 mb-4">Image to Braille</h1>
           <p className="text-lg text-gray-600">
-            이미지를 보고 단어를 추측하여 점자로 입력해보세요!
+            See the image, guess the word, and type it in Braille to check your answer!
           </p>
           <div className="mt-4 flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-green-600 font-semibold">정답:</span>
+              <span className="text-green-600 font-semibold">Correct:</span>
               <span className="text-green-600 font-bold text-lg">{score}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">총 문제:</span>
+              <span className="text-gray-500">Total:</span>
               <span className="text-gray-700 font-bold text-lg">{totalQuizzes}</span>
             </div>
             {totalQuizzes > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-blue-600">정답률:</span>
+                <span className="text-blue-600">Accuracy:</span>
                 <span className="text-blue-600 font-bold text-lg">
                   {Math.round((score / totalQuizzes) * 100)}%
                 </span>
@@ -313,14 +313,14 @@ const ImageToBraille: React.FC = () => {
             <div className="relative">
               <img
                 src={currentQuiz.imageUrl}
-                alt="퀴즈 이미지"
+                alt="Quiz Image"
                 className="w-80 h-64 object-cover rounded-lg shadow-lg"
               />
               <button
                 onClick={toggleHint}
                 className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors"
               >
-                힌트
+                Hint
               </button>
             </div>
           </motion.div>
@@ -368,7 +368,7 @@ const ImageToBraille: React.FC = () => {
             >
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
                 <p className="text-blue-800 text-center">
-                  입력된 점자: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
+                  Input Braille: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
                 </p>
               </div>
             </motion.div>
@@ -380,13 +380,13 @@ const ImageToBraille: React.FC = () => {
               onClick={skipQuiz}
               className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
             >
-              건너뛰기
+              Pass
             </button>
             <button
               onClick={initializeQuiz}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
-              새 문제
+              Next
             </button>
           </div>
         </div>
@@ -400,7 +400,7 @@ const ImageToBraille: React.FC = () => {
             className="mt-12 bg-white rounded-lg shadow-lg p-6"
           >
             <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-              점자 알파벳 참조
+              Braille Alphabet Reference
             </h3>
             <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-13 gap-2">
               {Array.from({ length: 26 }, (_, i) => {

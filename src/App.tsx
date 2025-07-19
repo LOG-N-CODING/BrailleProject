@@ -8,6 +8,9 @@ import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/Auth/LoginPage';
 import SignupPage from './pages/Auth/SignupPage';
 import ContactPage from './pages/ContactPage';
+import GameIndex from './pages/Games/GameIndex';
+import TypingGame from './pages/Games/TypingGame';
+import TypingSprint from './pages/Games/TypingSprint';
 import HomePage from './pages/HomePage';
 import AlphabetLearning from './pages/Learn/AlphabetLearning';
 import AlphabetModeSelect from './pages/Learn/AlphabetModeSelect';
@@ -46,7 +49,9 @@ function App() {
                 <Route path="/quiz/math" element={<MathQuiz />} />
 
                 {/* Game Routes */}
-                
+                <Route path="/games" element={<GameIndex />} />
+                <Route path="/games/typing-game" element={<TypingGame />} />
+                <Route path="/games/typing-sprint" element={<TypingSprint />} />
 
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />

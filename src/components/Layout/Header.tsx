@@ -143,7 +143,7 @@ const Header: React.FC = () => {
                 onMouseEnter={() => setIsGameDropdownOpen(true)}
                 onMouseLeave={() => setIsGameDropdownOpen(false)}
               >
-                <button className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
+                <Link to="/games" className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
                   Game
                   <svg
                     className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
@@ -156,7 +156,7 @@ const Header: React.FC = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                </button>
+                </Link>
                 <div
                   className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
                     isGameDropdownOpen
@@ -165,13 +165,13 @@ const Header: React.FC = () => {
                   }`}
                 >
                   <Link
-                    to="/game/typing"
+                    to="/games/typing-game"
                     className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
                   >
                     Typing Game
                   </Link>
                   <Link
-                    to="/game/sprint"
+                    to="/games/typing-sprint"
                     className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
                   >
                     Typing Sprint
@@ -315,14 +315,14 @@ const Header: React.FC = () => {
                       <span className="text-gray-700 font-medium text-lg">Game</span>
                       <div className="ml-2 flex flex-col mt-2">
                         <Link
-                          to="/game/typing"
+                          to="/games/typing-game"
                           className="text-gray-600 hover:text-primary-500 py-2 text-base"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           Typing Game
                         </Link>
                         <Link
-                          to="/game/sprint"
+                          to="/games/typing-sprint"
                           className="text-gray-600 hover:text-primary-500 py-2 text-base"
                           onClick={() => setIsMenuOpen(false)}
                         >

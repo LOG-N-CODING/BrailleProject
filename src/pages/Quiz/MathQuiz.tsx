@@ -50,19 +50,19 @@ const MathQuiz: React.FC = () => {
   const handleTimeUp = () => {
     setIsTimerActive(false);
     Swal.fire({
-      title: '시간 종료! ⏰',
+      title: 'Time\'s Up! ⏰',
       html: `
         <div class="text-center">
-          <p class="text-lg mb-4">제한 시간이 끝났습니다!</p>
-          <p class="mb-2">정답: <strong>${currentQuestion?.answer}</strong></p>
+          <p class="text-lg mb-4">Time limit has ended!</p>
+          <p class="mb-2">Answer: <strong>${currentQuestion?.answer}</strong></p>
           <div class="bg-gray-100 p-4 rounded-lg">
             <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
-            <p class="text-gray-600">정답률: ${totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0}%</p>
+            <p class="text-gray-600">Accuracy: ${totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0}%</p>
           </div>
         </div>
       `,
       icon: 'warning',
-      confirmButtonText: '다시 시작',
+      confirmButtonText: 'Restart',
       confirmButtonColor: '#3B82F6'
     }).then(() => {
       resetGame();
@@ -154,8 +154,8 @@ const MathQuiz: React.FC = () => {
     } else {
       // 오답
       Swal.fire({
-        title: '틀렸습니다!',
-        text: `올바른 숫자는 '${correctDigit}' 입니다.`,
+        title: 'Incorrect!',
+        text: `The correct number is '${correctDigit}'.`,
         icon: 'error',
         timer: 2000,
         showConfirmButton: false
@@ -195,18 +195,18 @@ const MathQuiz: React.FC = () => {
     const accuracy = Math.round(((score + 1) / (totalQuestions + 1)) * 100);
     
     Swal.fire({
-      title: '정답입니다! 🎉',
+      title: 'Correct! 🎉',
       html: `
         <div class="text-center">
-          <p class="text-lg mb-2">답: <strong>${currentQuestion?.answer}</strong></p>
-          <p class="text-blue-600">현재 정답률: ${accuracy}%</p>
-          <p class="text-sm text-gray-600 mt-2">남은 시간: ${timeLeft}초</p>
+          <p class="text-lg mb-2">Answer: <strong>${currentQuestion?.answer}</strong></p>
+          <p class="text-blue-600">Current accuracy: ${accuracy}%</p>
+          <p class="text-sm text-gray-600 mt-2">Time remaining: ${timeLeft} seconds</p>
         </div>
       `,
       icon: 'success',
       showCancelButton: true,
-      confirmButtonText: '다음 문제',
-      cancelButtonText: '퀴즈 종료',
+      confirmButtonText: 'Next Question',
+      cancelButtonText: 'End Quiz',
       confirmButtonColor: '#3B82F6',
       cancelButtonColor: '#6B7280'
     }).then((result) => {
@@ -225,34 +225,34 @@ const MathQuiz: React.FC = () => {
     let icon: 'success' | 'info' | 'warning' = 'info';
     
     if (accuracy >= 90) {
-      message = '수학 천재네요! 완벽합니다! 🏆';
+      message = 'Math genius! Perfect! 🏆';
       icon = 'success';
     } else if (accuracy >= 70) {
-      message = '훌륭합니다! 수학 실력이 뛰어나네요! 🎯';
+      message = 'Excellent! Your math skills are outstanding! 🎯';
       icon = 'success';
     } else if (accuracy >= 50) {
-      message = '괜찮습니다! 좀 더 연습하면 완벽해질 거예요! 📚';
+      message = 'Good job! With more practice, you\'ll be perfect! 📚';
       icon = 'info';
     } else {
-      message = '아직 연습이 더 필요해요. 포기하지 마세요! 💪';
+      message = 'You need more practice. Don\'t give up! 💪';
       icon = 'warning';
     }
     
     Swal.fire({
-      title: '수학 퀴즈 완료!',
+      title: 'Math Quiz Complete!',
       html: `
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
             <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
-            <p class="text-gray-600">정답률: ${accuracy}%</p>
+            <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
         </div>
       `,
       icon,
-      confirmButtonText: '다시 시작',
+      confirmButtonText: 'Restart',
       showCancelButton: true,
-      cancelButtonText: '종료',
+      cancelButtonText: 'Exit',
       confirmButtonColor: '#3B82F6'
     }).then((result) => {
       if (result.isConfirmed) {
@@ -276,20 +276,20 @@ const MathQuiz: React.FC = () => {
     handleDigitInput(digit);
   };
 
-  // 문제 건너뛰기
+  // 문제 Pass
   const skipQuestion = () => {
     Swal.fire({
-      title: '문제를 건너뛰시겠습니까?',
+      title: 'Skip this question?',
       html: `
         <div class="text-center">
-          <p class="mb-2">정답은 <strong>${currentQuestion?.answer}</strong> 입니다.</p>
-          <p class="text-sm text-gray-600">건너뛴 문제는 오답으로 처리됩니다.</p>
+          <p class="mb-2">The answer is <strong>${currentQuestion?.answer}</strong>.</p>
+          <p class="text-sm text-gray-600">Skipped questions will be counted as incorrect.</p>
         </div>
       `,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: '다음 문제',
-      cancelButtonText: '계속하기',
+      confirmButtonText: 'Next Question',
+      cancelButtonText: 'Continue',
       confirmButtonColor: '#EF4444',
       cancelButtonColor: '#6B7280'
     }).then((result) => {
@@ -303,7 +303,7 @@ const MathQuiz: React.FC = () => {
   if (!currentQuestion) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">수학 문제를 로드하는 중...</div>
+        <div className="text-xl">Loading math question...</div>
       </div>
     );
   }
@@ -314,7 +314,7 @@ const MathQuiz: React.FC = () => {
       <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
-        title="점자 키보드 토글"
+        title="Toggle Braille Keyboard"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -330,20 +330,20 @@ const MathQuiz: React.FC = () => {
         >
           <h1 className="text-4xl font-light text-gray-700 mb-4">Math Quiz</h1>
           <p className="text-lg text-gray-600">
-            수학 문제를 풀고 답을 점자로 입력해보세요!
+            See the question, solve the math, and type your answer in Braille to check if you're right!
           </p>
           <div className="mt-4 flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-green-600 font-semibold">정답:</span>
+              <span className="text-green-600 font-semibold">Correct:</span>
               <span className="text-green-600 font-bold text-lg">{score}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">총 문제:</span>
+              <span className="text-gray-500">Total:</span>
               <span className="text-gray-700 font-bold text-lg">{totalQuestions}</span>
             </div>
             {totalQuestions > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-blue-600">정답률:</span>
+                <span className="text-blue-600">Accuracy:</span>
                 <span className="text-blue-600 font-bold text-lg">
                   {Math.round((score / totalQuestions) * 100)}%
                 </span>
@@ -351,7 +351,7 @@ const MathQuiz: React.FC = () => {
             )}
             <div className="flex items-center gap-2">
               <span className={`font-semibold ${timeLeft <= 10 ? 'text-red-600' : 'text-orange-600'}`}>
-                시간: {timeLeft}초
+                Time: {timeLeft}s
               </span>
             </div>
           </div>
@@ -378,7 +378,7 @@ const MathQuiz: React.FC = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {level === 'easy' ? '쉬움' : level === 'medium' ? '보통' : '어려움'}
+                {level === 'easy' ? 'Easy' : level === 'medium' ? 'Medium' : 'Hard'}
               </button>
             ))}
           </div>
@@ -400,7 +400,7 @@ const MathQuiz: React.FC = () => {
                 onClick={toggleHint}
                 className="mt-4 mx-auto block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition-colors"
               >
-                힌트
+                Hint
               </button>
             </div>
           </motion.div>
@@ -448,7 +448,7 @@ const MathQuiz: React.FC = () => {
             >
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
                 <p className="text-blue-800 text-center">
-                  입력된 점자: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
+                  Input Braille: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
                 </p>
               </div>
             </motion.div>
@@ -460,13 +460,13 @@ const MathQuiz: React.FC = () => {
               onClick={skipQuestion}
               className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
             >
-              건너뛰기
+              Pass
             </button>
             <button
               onClick={initializeQuestion}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
-              새 문제
+              Next
             </button>
           </div>
         </div>
@@ -480,7 +480,7 @@ const MathQuiz: React.FC = () => {
             className="mt-12 bg-white rounded-lg shadow-lg p-6"
           >
             <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-              점자 숫자 참조
+              Braille Numbers Reference
             </h3>
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-4">
               {Object.entries(BRAILLE_NUMBERS).map(([number, dots]) => {
