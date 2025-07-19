@@ -25,9 +25,10 @@ const BrailleDeviceFloatingButton: React.FC = () => {
               onClick={() => setIsExpanded(false)}
               className="text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              {/* <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+              </svg> */}
+              <img src="/images/figma/hero-3d-key.png" alt="" className="w-12 h-auto" />
             </button>
           </div>
           
@@ -61,13 +62,9 @@ const BrailleDeviceFloatingButton: React.FC = () => {
         } ${isExpanded ? 'border border-[3px] border-black' : ''}`}
       >
         {isConnected ? (
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
+          <img src="/images/figma/hero-3d-key.png" alt="" className="w-8 h-auto" />
         ) : (
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 6.707 6.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
+          <img src="/images/figma/hero-3d-key.png" alt="" className="w-8 h-auto" />
         )}
       </button>
     </div>

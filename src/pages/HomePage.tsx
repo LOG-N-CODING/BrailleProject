@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
                 variants={fadeInUp}
               >
                 <span className="text-[#2575FF]">Braille</span>
-                <span className='text-white'>Play</span>
+                <span className='text-black'>Play</span>
               </motion.h1>
               <motion.h2 
                 className="text-xl sm:text-2xl lg:text-4xl font-light text-black mb-8"
