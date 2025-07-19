@@ -12,7 +12,6 @@ const SignupPage: React.FC = () => {
     confirmPassword: '',
     name: '',
     dateOfBirth: '',
-    email: '',
     agreeToTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +71,7 @@ const SignupPage: React.FC = () => {
       return false;
     }
 
-    if (!formData.email) {
+    if (!formData.username) {
       setError('Please enter your email address.');
       return false;
     }
@@ -102,11 +101,11 @@ const SignupPage: React.FC = () => {
     try {
       setIsLoading(true);
       setError('');
-      const { email, password } = formData;
-      console.log('회원가입 시도:', email, password);
+      const { username, password } = formData;
+      console.log('회원가입 시도:', username, password);
 
       // 1) 계정 생성
-      const user = await signUp(email, password);
+      const user = await signUp(username, password);
 
       setError('');
 
@@ -118,7 +117,7 @@ const SignupPage: React.FC = () => {
         // name, photoURL 등 추가 정보가 있다면 넣기
       });
 
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, username, password);
       console.log('자동 로그인 완료');
 
       navigate('/');
@@ -175,17 +174,17 @@ const SignupPage: React.FC = () => {
                   htmlFor="username"
                   className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
                 >
-                  username
+                  username (email)
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   id="username"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
                   required
                   className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
-                  placeholder="username"
+                  placeholder="john.doe@example.com"
                 />
               </div>
 
@@ -344,26 +343,6 @@ const SignupPage: React.FC = () => {
                     </svg>
                   </div>
                 </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
-                >
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
-                  placeholder="john.doe@example.com"
-                />
               </div>
 
               {/* Terms Agreement */}
