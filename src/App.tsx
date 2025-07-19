@@ -8,8 +8,6 @@ import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/Auth/LoginPage';
 import SignupPage from './pages/Auth/SignupPage';
 import ContactPage from './pages/ContactPage';
-import MemoryGame from './pages/Games/MemoryGame';
-import WordGuessing from './pages/Games/WordGuessing';
 import HomePage from './pages/HomePage';
 import AlphabetLearning from './pages/Learn/AlphabetLearning';
 import AlphabetModeSelect from './pages/Learn/AlphabetModeSelect';
@@ -48,8 +46,7 @@ function App() {
                 <Route path="/quiz/math" element={<MathQuiz />} />
 
                 {/* Game Routes */}
-                <Route path="/games/memory" element={<MemoryGame />} />
-                <Route path="/games/word-guessing" element={<WordGuessing />} />
+                
 
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
