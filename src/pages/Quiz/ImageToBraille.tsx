@@ -3,7 +3,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { quizImages, QuizImage } from '../../data/quizData';
-import { BRAILLE_ALPHABET, getDotsFromCharacter, generateBraillePattern, parseInputBits, findCharacterFromDots } from '../../utils/braille';
+import {
+  BRAILLE_ALPHABET,
+  getDotsFromCharacter,
+  generateBraillePattern,
+  parseInputBits,
+  findCharacterFromDots,
+} from '../../utils/braille';
+import { query, collection, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 interface LetterCard {
   letter: string;
@@ -12,6 +20,8 @@ interface LetterCard {
 }
 
 const ImageToBraille: React.FC = () => {
+  const [quizOrder, setQuizOrder] = useState<QuizImage[]>([]);
+  const [quizIndex, setQuizIndex] = useState(0);
   const [currentQuiz, setCurrentQuiz] = useState<QuizImage | null>(null);
   const [letterCards, setLetterCards] = useState<LetterCard[]>([]);
   const [guessedAnswer, setGuessedAnswer] = useState<string>('');
@@ -25,121 +35,79 @@ const ImageToBraille: React.FC = () => {
 
   const { isConnected, setOnDataCallback } = useBrailleDevice();
 
-  // 퀴즈 초기화
-  const initializeQuiz = useCallback(() => {
-    const randomQuiz = quizImages[Math.floor(Math.random() * quizImages.length)];
-    setCurrentQuiz(randomQuiz);
-    
-    const cards: LetterCard[] = randomQuiz.answer.split('').map((letter, index) => ({
-      letter,
-      isGuessed: false,
-      position: index
-    }));
-    
-    setLetterCards(cards);
-    setGuessedAnswer('');
-    setCurrentPosition(0);
-    setShowHint(false);
-    setActiveDots([]);
-    setUserInput('');
+  // 1) Firestore fetch
+  useEffect(() => {
+    (async () => {
+      const q = query(collection(db, 'quizzes'), where('type', '==', 'image'));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(
+        doc =>
+          ({
+            id: doc.id,
+            imageUrl: doc.data().imageUrl,
+            answer: doc.data().word,
+            hint: doc.data().hint,
+            difficulty: doc.data().difficulty,
+          } as QuizImage)
+      );
+      const shuffled = data.sort(() => Math.random() - 0.5);
+      setQuizOrder(shuffled);
+      setQuizIndex(1);
+      // ✂️ remove loadQuizAt(0) here
+    })();
   }, []);
 
-  // 초기 로드
-  useEffect(() => {
-    initializeQuiz();
-  }, [initializeQuiz]);
-
-  // 브레일 장치 입력 처리
-  useEffect(() => {
-    if (!isConnected) return;
-
-    const handleBrailleInput = (data: number) => {
-      const bits = parseInputBits(data);
-      
-      if (bits.includes(-1)) {
-        handleBackspace();
-      } else if (bits.includes(-2)) {
-        handleNextPosition();
-      } else if (bits.length > 0) {
-        setActiveDots(bits);
-        const character = findCharacterFromDots(bits);
-        if (character) {
-          handleCharacterInput(character.toUpperCase());
-        }
-      }
-    };
-
-    setOnDataCallback(handleBrailleInput);
-  }, [isConnected]); // 필요한 함수들은 별도로 관리
-
-  // 문자 입력 처리
-  const handleCharacterInput = (character: string) => {
-    if (!currentQuiz || currentPosition >= currentQuiz.answer.length) return;
-
-    const currentLetter = currentQuiz.answer[currentPosition];
-    
-    if (character === currentLetter) {
-      // 정답
-      const newLetterCards = [...letterCards];
-      newLetterCards[currentPosition].isGuessed = true;
-      setLetterCards(newLetterCards);
-      
-      const newGuessedAnswer = guessedAnswer + character;
-      setGuessedAnswer(newGuessedAnswer);
-      
-      // 다음 위치로 이동
-      setCurrentPosition(currentPosition + 1);
+  // 2) 특정 인덱스의 퀴즈만 화면에 세팅
+  const loadQuizAt = useCallback(
+    (i: number) => {
+      const quiz = quizOrder[i];
+      setCurrentQuiz(quiz);
+      setLetterCards(
+        quiz.answer.split('').map((l, idx) => ({
+          letter: l,
+          isGuessed: false,
+          position: idx,
+        }))
+      );
+      setGuessedAnswer('');
+      setCurrentPosition(0);
+      setShowHint(false);
       setActiveDots([]);
-      setUserInput('');
-      
-      // 단어 완성 체크
-      if (newGuessedAnswer === currentQuiz.answer) {
-        handleQuizComplete();
-      }
+    },
+    [quizOrder]
+  );
+
+  // 2) quizOrder 변경 감지해서 한 번만 로드
+  useEffect(() => {
+    if (quizOrder.length > 0) {
+      loadQuizAt(0);
+    }
+  }, [quizOrder, loadQuizAt]);
+
+  // 3) 다음 문제 혹은 최종결과 분기
+  const onNextQuestion = useCallback(() => {
+    if (quizIndex >= quizOrder.length) {
+      showFinalResults();
     } else {
-      // 오답
-      Swal.fire({
-        title: 'Incorrect!',
-        text: `The correct character is '${currentLetter}'.`,
-        icon: 'error',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      setActiveDots([]);
-      setUserInput('');
+      loadQuizAt(quizIndex);
+      setQuizIndex(prev => prev + 1);
     }
-  };
+  }, [quizIndex, quizOrder.length, loadQuizAt]);
 
-  // 백스페이스 처리
-  const handleBackspace = () => {
-    if (currentPosition > 0) {
-      const newPosition = currentPosition - 1;
-      const newLetterCards = [...letterCards];
-      newLetterCards[newPosition].isGuessed = false;
-      setLetterCards(newLetterCards);
-      
-      setCurrentPosition(newPosition);
-      setGuessedAnswer(guessedAnswer.slice(0, -1));
-      setActiveDots([]);
-      setUserInput('');
-    }
-  };
+  // 4) 최종 결과 모달
+  const restartQuiz = useCallback(() => {
+    const shuffled = [...quizOrder].sort(() => Math.random() - 0.5);
+    setQuizOrder(shuffled);
+    setQuizIndex(1);
+    setScore(0);
+    setTotalQuizzes(0);
+    loadQuizAt(0);
+  }, [quizOrder, loadQuizAt]);
 
-  // 다음 위치로 이동 (Space)
-  const handleNextPosition = () => {
-    if (currentPosition < letterCards.length - 1) {
-      setCurrentPosition(currentPosition + 1);
-      setActiveDots([]);
-      setUserInput('');
-    }
-  };
-
-  // 최종 결과 표시
   const showFinalResults = () => {
     const accuracy = totalQuizzes > 0 ? Math.round((score / totalQuizzes) * 100) : 0;
-    let message = '';
-    let icon: 'success' | 'info' | 'warning' = 'info';
-    
+    let message = '',
+      icon: 'success' | 'info' | 'warning' = 'info';
     if (accuracy >= 90) {
       message = 'Perfect! You are a Braille master! 🎉';
       icon = 'success';
@@ -150,65 +118,131 @@ const ImageToBraille: React.FC = () => {
       message = 'Good job! Practice a little more! 💪';
       icon = 'info';
     } else {
-      message = 'You need more practice. Don\'t give up! 🌟';
+      message = "You need more practice. Don't give up! 🌟";
       icon = 'warning';
     }
-    
+
     Swal.fire({
       title: 'Quiz Complete!',
       html: `
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
-            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuizzes}</p>
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score + 1} / ${totalQuizzes + 1}</p>
             <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
-        </div>
-      `,
+        </div>`,
       icon,
       confirmButtonText: 'Restart',
       showCancelButton: true,
       cancelButtonText: 'Exit',
-      confirmButtonColor: '#3B82F6'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // 점수 초기화 후 새 게임
-        setScore(0);
-        setTotalQuizzes(0);
-        initializeQuiz();
-      }
+      confirmButtonColor: '#3B82F6',
+    }).then(result => {
+      if (result.isConfirmed) restartQuiz();
     });
   };
 
-  // 퀴즈 완성 처리
+  // 5) 정답 처리
   const handleQuizComplete = () => {
-    setScore(score + 1);
-    setTotalQuizzes(totalQuizzes + 1);
-    
+    setScore(s => s + 1);
+    setTotalQuizzes(t => t + 1);
     const accuracy = Math.round(((score + 1) / (totalQuizzes + 1)) * 100);
-    
+
     Swal.fire({
       title: 'Correct! 🎉',
       html: `
         <div class="text-center">
           <p class="text-lg mb-2">You got '<strong>${currentQuiz?.answer}</strong>' correct!</p>
           <p class="text-blue-600">Current accuracy: ${accuracy}%</p>
-        </div>
-      `,
+        </div>`,
       icon: 'success',
       showCancelButton: true,
       confirmButtonText: 'Next Question',
       cancelButtonText: 'End Quiz',
       confirmButtonColor: '#3B82F6',
-      cancelButtonColor: '#6B7280'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        initializeQuiz();
-      } else {
-        // 퀴즈 종료 시 최종 결과 표시
-        showFinalResults();
-      }
+      cancelButtonColor: '#6B7280',
+    }).then(result => {
+      if (result.isConfirmed) onNextQuestion();
+      else showFinalResults();
     });
+  };
+
+  // 6) Pass 처리
+  const skipQuiz = () => {
+    setTotalQuizzes(t => t + 1);
+    Swal.fire({
+      title: 'Skip this question?',
+      html: `<p>The answer is '<strong>${currentQuiz?.answer}</strong>'.</p>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Next Question',
+      cancelButtonText: 'Continue',
+      confirmButtonColor: '#EF4444',
+    }).then(result => {
+      if (result.isConfirmed) onNextQuestion();
+    });
+  };
+
+  // 7) 문자 입력 처리 (Braille & 수동)
+  useEffect(() => {
+    if (!isConnected) return;
+    const cb = (data: number) => {
+      const bits = parseInputBits(data);
+      if (bits.includes(-1)) handleBackspace();
+      else if (bits.includes(-2)) onNextQuestion();
+      else if (bits.length > 0) {
+        setActiveDots(bits);
+        const ch = findCharacterFromDots(bits);
+        if (ch) handleCharacterInput(ch.toUpperCase());
+      }
+    };
+    setOnDataCallback(cb);
+  }, [isConnected, onNextQuestion, setOnDataCallback]);
+
+  const handleCharacterInput = (character: string) => {
+    if (!currentQuiz || currentPosition >= currentQuiz.answer.length) return;
+    const correct = currentQuiz.answer[currentPosition];
+    if (character === correct) {
+      setLetterCards(cards => {
+        const nc = [...cards];
+        nc[currentPosition].isGuessed = true;
+        return nc;
+      });
+      setGuessedAnswer(a => a + character);
+      setCurrentPosition(p => p + 1);
+      setActiveDots([]);
+      if (guessedAnswer + character === currentQuiz.answer) {
+        handleQuizComplete();
+      }
+    } else {
+      Swal.fire({
+        title: 'Incorrect!',
+        text: `Correct is '${correct}'`,
+        icon: 'error',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      setActiveDots([]);
+    }
+  };
+
+  const handleBackspace = () => {
+    if (currentPosition > 0) {
+      setCurrentPosition(p => p - 1);
+      setLetterCards(cards => {
+        const nc = [...cards];
+        nc[currentPosition - 1].isGuessed = false;
+        return nc;
+      });
+      setGuessedAnswer(a => a.slice(0, -1));
+      setActiveDots([]);
+    }
+  };
+
+  // 8) 수동 입력
+  const handleManualInput = (letter: string) => {
+    setActiveDots([]);
+    handleCharacterInput(letter);
   };
 
   // 힌트 표시
@@ -219,35 +253,6 @@ const ImageToBraille: React.FC = () => {
   // 점자 키보드 토글
   const toggleKeyboard = () => {
     setKeyboardVisible(!keyboardVisible);
-  };
-
-  // 수동 문자 입력 (키보드용)
-  const handleManualInput = (letter: string) => {
-    handleCharacterInput(letter);
-  };
-
-  // 퀴즈 Pass
-  const skipQuiz = () => {
-    Swal.fire({
-      title: 'Skip this question?',
-      html: `
-        <div class="text-center">
-          <p class="mb-2">The answer is '<strong>${currentQuiz?.answer}</strong>'.</p>
-          <p class="text-sm text-gray-600">Skipped questions will be counted as incorrect.</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Next Question',
-      cancelButtonText: 'Continue',
-      confirmButtonColor: '#EF4444',
-      cancelButtonColor: '#6B7280'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setTotalQuizzes(totalQuizzes + 1);
-        initializeQuiz();
-      }
-    });
   };
 
   if (!currentQuiz) {
@@ -267,7 +272,12 @@ const ImageToBraille: React.FC = () => {
         title="Toggle Braille Keyboard"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </button>
 
@@ -383,7 +393,7 @@ const ImageToBraille: React.FC = () => {
               Pass
             </button>
             <button
-              onClick={initializeQuiz}
+              onClick={onNextQuestion}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
               Next
@@ -407,10 +417,11 @@ const ImageToBraille: React.FC = () => {
                 const letter = String.fromCharCode(65 + i);
                 const braillePattern = getDotsFromCharacter(letter);
                 const brailleChar = braillePattern ? generateBraillePattern(braillePattern) : '⠀';
-                
+
                 return (
                   <motion.button
                     key={letter}
+                    type="button"
                     onClick={() => handleManualInput(letter)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

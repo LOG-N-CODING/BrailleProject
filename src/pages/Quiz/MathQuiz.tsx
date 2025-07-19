@@ -3,7 +3,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { getRandomQuestion, MathQuestion } from '../../data/mathQuizData';
-import { BRAILLE_NUMBERS, getDotsFromCharacter, generateBraillePattern, parseInputBits, findCharacterFromDots } from '../../utils/braille';
+import {
+  BRAILLE_NUMBERS,
+  getDotsFromCharacter,
+  generateBraillePattern,
+  parseInputBits,
+  findCharacterFromDots,
+} from '../../utils/braille';
+import { getDocs, collection, query, where } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 interface DigitCard {
   digit: string;
@@ -14,6 +22,8 @@ interface DigitCard {
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 const MathQuiz: React.FC = () => {
+  const [questions, setQuestions] = useState<MathQuestion[]>([]);
+  const [remaining, setRemaining] = useState<MathQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<MathQuestion | null>(null);
   const [digitCards, setDigitCards] = useState<DigitCard[]>([]);
   const [guessedAnswer, setGuessedAnswer] = useState<string>('');
@@ -32,7 +42,7 @@ const MathQuiz: React.FC = () => {
   // 타이머 효과
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    
+
     if (isTimerActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(time => time - 1);
@@ -50,45 +60,99 @@ const MathQuiz: React.FC = () => {
   const handleTimeUp = () => {
     setIsTimerActive(false);
     Swal.fire({
-      title: 'Time\'s Up! ⏰',
+      title: "Time's Up! ⏰",
       html: `
         <div class="text-center">
           <p class="text-lg mb-4">Time limit has ended!</p>
           <p class="mb-2">Answer: <strong>${currentQuestion?.answer}</strong></p>
           <div class="bg-gray-100 p-4 rounded-lg">
             <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
-            <p class="text-gray-600">Accuracy: ${totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0}%</p>
+            <p class="text-gray-600">Accuracy: ${
+              totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0
+            }%</p>
           </div>
         </div>
       `,
       icon: 'warning',
       confirmButtonText: 'Restart',
-      confirmButtonColor: '#3B82F6'
+      confirmButtonColor: '#3B82F6',
     }).then(() => {
       resetGame();
     });
   };
 
-  // 게임 초기화
-  const initializeQuestion = useCallback(() => {
-    const question = getRandomQuestion(difficulty);
-    setCurrentQuestion(question);
-    
-    const answerStr = question.answer.toString();
-    const cards: DigitCard[] = answerStr.split('').map((digit, index) => ({
-      digit,
-      isGuessed: false,
-      position: index
-    }));
-    
-    setDigitCards(cards);
-    setGuessedAnswer('');
-    setCurrentPosition(0);
-    setShowHint(false);
-    setActiveDots([]);
-    setTimeLeft(60);
-    setIsTimerActive(true);
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      // ① 'quizzes' 컬렉션에서 type이 'math'인 문서만 조회
+      const q = query(
+        collection(db, 'quizzes'),
+        where('type', '==', 'math'),
+        where('difficulty', '==', difficulty)
+      );
+
+      const snap = await getDocs(q);
+      const list = snap.docs.map(doc => {
+        const d = doc.data() as any;
+        return {
+          id: doc.id,
+          question: d.question,
+          answer: d.answer,
+          hint: d.hint,
+          difficulty: d.difficulty,
+          createdAt: d.createdAt.toDate(),
+          type: d.type,
+        } as MathQuestion;
+      });
+
+      setQuestions(list);
+      setRemaining(list); // 전체 문제를 남은 문제로 복제
+      if (list.length > 0) {
+        initializeQuestion(list);
+      }
+    };
+    fetchQuestions();
+
+    fetchQuestions();
   }, [difficulty]);
+
+  // 게임 초기화
+  const initializeQuestion = useCallback(
+    (list: MathQuestion[] = remaining) => {
+      // ① list 가 비어 있으면 리턴
+      if (list.length === 0) {
+        // 더 이상 남은 문제가 없으면
+        showFinalResults(); // 결과 팝업 호출
+        return;
+      }
+
+      // 랜덤 선택
+      const idx = Math.floor(Math.random() * list.length);
+      const question = list[idx];
+      setCurrentQuestion(question);
+
+      // 남은 문제에서 지금 낸 것 제거
+      const nextRemaining = [...list];
+      nextRemaining.splice(idx, 1);
+      setRemaining(nextRemaining);
+
+      // ④ 나머지 초기화 로직
+      const answerStr = question.answer.toString();
+      const cards: DigitCard[] = answerStr.split('').map((digit, index) => ({
+        digit,
+        isGuessed: false,
+        position: index,
+      }));
+
+      setDigitCards(cards);
+      setGuessedAnswer('');
+      setCurrentPosition(0);
+      setShowHint(false);
+      setActiveDots([]);
+      setTimeLeft(60);
+      setIsTimerActive(true);
+    },
+    [difficulty, remaining]
+  );
 
   // 게임 리셋
   const resetGame = () => {
@@ -96,13 +160,9 @@ const MathQuiz: React.FC = () => {
     setTotalQuestions(0);
     setTimeLeft(60);
     setIsTimerActive(false);
-    initializeQuestion();
+    setRemaining(questions);
+    initializeQuestion(questions);
   };
-
-  // 초기 로드
-  useEffect(() => {
-    initializeQuestion();
-  }, [initializeQuestion]);
 
   // 브레일 장치 입력 처리
   useEffect(() => {
@@ -110,7 +170,7 @@ const MathQuiz: React.FC = () => {
 
     const handleBrailleInput = (data: number) => {
       const bits = parseInputBits(data);
-      
+
       if (bits.includes(-1)) {
         handleBackspace();
       } else if (bits.includes(-2)) {
@@ -133,20 +193,20 @@ const MathQuiz: React.FC = () => {
     if (!currentQuestion || currentPosition >= currentQuestion.answer.toString().length) return;
 
     const correctDigit = currentQuestion.answer.toString()[currentPosition];
-    
+
     if (digit === correctDigit) {
       // 정답
       const newDigitCards = [...digitCards];
       newDigitCards[currentPosition].isGuessed = true;
       setDigitCards(newDigitCards);
-      
+
       const newGuessedAnswer = guessedAnswer + digit;
       setGuessedAnswer(newGuessedAnswer);
-      
+
       // 다음 위치로 이동
       setCurrentPosition(currentPosition + 1);
       setActiveDots([]);
-      
+
       // 답 완성 체크
       if (newGuessedAnswer === currentQuestion.answer.toString()) {
         handleQuestionComplete();
@@ -158,7 +218,7 @@ const MathQuiz: React.FC = () => {
         text: `The correct number is '${correctDigit}'.`,
         icon: 'error',
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
       setActiveDots([]);
     }
@@ -171,7 +231,7 @@ const MathQuiz: React.FC = () => {
       const newDigitCards = [...digitCards];
       newDigitCards[newPosition].isGuessed = false;
       setDigitCards(newDigitCards);
-      
+
       setCurrentPosition(newPosition);
       setGuessedAnswer(guessedAnswer.slice(0, -1));
       setActiveDots([]);
@@ -191,9 +251,9 @@ const MathQuiz: React.FC = () => {
     setIsTimerActive(false);
     setScore(score + 1);
     setTotalQuestions(totalQuestions + 1);
-    
+
     const accuracy = Math.round(((score + 1) / (totalQuestions + 1)) * 100);
-    
+
     Swal.fire({
       title: 'Correct! 🎉',
       html: `
@@ -208,8 +268,8 @@ const MathQuiz: React.FC = () => {
       confirmButtonText: 'Next Question',
       cancelButtonText: 'End Quiz',
       confirmButtonColor: '#3B82F6',
-      cancelButtonColor: '#6B7280'
-    }).then((result) => {
+      cancelButtonColor: '#6B7280',
+    }).then(result => {
       if (result.isConfirmed) {
         initializeQuestion();
       } else {
@@ -223,7 +283,7 @@ const MathQuiz: React.FC = () => {
     const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
     let message = '';
     let icon: 'success' | 'info' | 'warning' = 'info';
-    
+
     if (accuracy >= 90) {
       message = 'Math genius! Perfect! 🏆';
       icon = 'success';
@@ -231,20 +291,22 @@ const MathQuiz: React.FC = () => {
       message = 'Excellent! Your math skills are outstanding! 🎯';
       icon = 'success';
     } else if (accuracy >= 50) {
-      message = 'Good job! With more practice, you\'ll be perfect! 📚';
+      message = "Good job! With more practice, you'll be perfect! 📚";
       icon = 'info';
     } else {
-      message = 'You need more practice. Don\'t give up! 💪';
+      message = "You need more practice. Don't give up! 💪";
       icon = 'warning';
     }
-    
+
     Swal.fire({
       title: 'Math Quiz Complete!',
       html: `
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
-            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score + 1} / ${
+        totalQuestions + 1
+      }</p>
             <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
         </div>
@@ -253,8 +315,8 @@ const MathQuiz: React.FC = () => {
       confirmButtonText: 'Restart',
       showCancelButton: true,
       cancelButtonText: 'Exit',
-      confirmButtonColor: '#3B82F6'
-    }).then((result) => {
+      confirmButtonColor: '#3B82F6',
+    }).then(result => {
       if (result.isConfirmed) {
         resetGame();
       }
@@ -291,8 +353,8 @@ const MathQuiz: React.FC = () => {
       confirmButtonText: 'Next Question',
       cancelButtonText: 'Continue',
       confirmButtonColor: '#EF4444',
-      cancelButtonColor: '#6B7280'
-    }).then((result) => {
+      cancelButtonColor: '#6B7280',
+    }).then(result => {
       if (result.isConfirmed) {
         setTotalQuestions(totalQuestions + 1);
         initializeQuestion();
@@ -317,7 +379,12 @@ const MathQuiz: React.FC = () => {
         title="Toggle Braille Keyboard"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </button>
 
@@ -330,7 +397,8 @@ const MathQuiz: React.FC = () => {
         >
           <h1 className="text-4xl font-light text-gray-700 mb-4">Math Quiz</h1>
           <p className="text-lg text-gray-600">
-            See the question, solve the math, and type your answer in Braille to check if you're right!
+            See the question, solve the math, and type your answer in Braille to check if you're
+            right!
           </p>
           <div className="mt-4 flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
@@ -350,7 +418,9 @@ const MathQuiz: React.FC = () => {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <span className={`font-semibold ${timeLeft <= 10 ? 'text-red-600' : 'text-orange-600'}`}>
+              <span
+                className={`font-semibold ${timeLeft <= 10 ? 'text-red-600' : 'text-orange-600'}`}
+              >
                 Time: {timeLeft}s
               </span>
             </div>
@@ -364,7 +434,7 @@ const MathQuiz: React.FC = () => {
           className="flex justify-center mb-8"
         >
           <div className="bg-white rounded-lg shadow-md p-2 flex gap-2">
-            {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => (
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map(level => (
               <button
                 key={level}
                 onClick={() => {
@@ -463,7 +533,7 @@ const MathQuiz: React.FC = () => {
               Pass
             </button>
             <button
-              onClick={initializeQuestion}
+              onClick={() => initializeQuestion(questions)}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
               Next
@@ -485,7 +555,7 @@ const MathQuiz: React.FC = () => {
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-4">
               {Object.entries(BRAILLE_NUMBERS).map(([number, dots]) => {
                 const brailleChar = generateBraillePattern(dots);
-                
+
                 return (
                   <motion.button
                     key={number}

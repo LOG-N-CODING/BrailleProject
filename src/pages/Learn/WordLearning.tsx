@@ -1,40 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { BRAILLE_ALPHABET, generateBraillePattern, parseInputBits, findCharacterFromDots, getDotsFromCharacter } from '../../utils/braille';
+import {
+  BRAILLE_ALPHABET,
+  generateBraillePattern,
+  parseInputBits,
+  findCharacterFromDots,
+  getDotsFromCharacter,
+} from '../../utils/braille';
 import { SectionHeader } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateWordProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
+import { query, collection, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 // Words data based on Words.md
-const wordsData = {
-  'School & Education': [
-    'subject', 'homework', 'classroom', 'teacher', 'student',
-    'uniform', 'blackboard', 'pencil', 'eraser', 'ruler',
-    'exam', 'grade', 'notebook', 'lesson', 'test',
-    'answer', 'question', 'textbook', 'desk', 'schedule'
-  ],
-  'Food & Drink': [
-    'breakfast', 'lunch', 'dinner', 'coffee', 'tea',
-    'water', 'juice', 'bread', 'butter', 'cheese',
-    'milk', 'sugar', 'salt', 'pepper', 'fruit',
-    'vegetable', 'meat', 'fish', 'chicken', 'rice'
-  ],
-  'Family & Relationships': [
-    'mother', 'father', 'sister', 'brother', 'grandmother',
-    'grandfather', 'aunt', 'uncle', 'cousin', 'family',
-    'parent', 'child', 'baby', 'friend', 'neighbor',
-    'husband', 'wife', 'daughter', 'son', 'relative'
-  ],
-  'Home & Daily Life': [
-    'house', 'kitchen', 'bedroom', 'bathroom', 'living',
-    'door', 'window', 'table', 'chair', 'bed',
-    'shower', 'toilet', 'mirror', 'clock', 'lamp',
-    'television', 'phone', 'computer', 'book', 'newspaper'
-  ]
-};
-
 const WordLearning: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -44,13 +25,40 @@ const WordLearning: React.FC = () => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [completedWords, setCompletedWords] = useState<{ [category: string]: Set<string> }>({});
-  
+
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [showBrailleKeyboard, setShowBrailleKeyboard] = useState(false);
 
+  const [wordsData, setWordsData] = useState<Record<string, string[]>>({});
   const categories = Object.keys(wordsData);
+
+  useEffect(() => {
+    const fetchWords = async () => {
+      try {
+        // 'words' 콜렉션 전체 문서 조회, category 오름차순 정렬
+        const q = query(collection(db, 'words'), orderBy('category'));
+        const snap = await getDocs(q);
+
+        const grouped: Record<string, string[]> = {};
+        snap.docs.forEach(docSnap => {
+          const { category, content } = docSnap.data() as {
+            category: string;
+            content: string;
+            createdAt: any;
+          };
+          if (!grouped[category]) grouped[category] = [];
+          grouped[category].push(content);
+        });
+
+        setWordsData(grouped);
+      } catch (err) {
+        console.error('❌ words 불러오기 실패:', err);
+      }
+    };
+    fetchWords();
+  }, []);
 
   useEffect(() => {
     // 사용자의 학습 진행도 로드
@@ -70,15 +78,15 @@ const WordLearning: React.FC = () => {
       console.log('🔐 No user logged in - skipping progress load');
       return;
     }
-    
+
     console.log('📊 Loading user progress for:', user.email);
-    
+
     try {
       const progress = await getUserLearningProgress(user);
       console.log('📈 Progress loaded:', progress);
-      
+
       const completed: { [category: string]: Set<string> } = {};
-      
+
       // 완료된 단어들을 카테고리별로 Set에 추가
       Object.entries(progress.words).forEach(([category, words]) => {
         completed[category] = new Set<string>();
@@ -89,10 +97,14 @@ const WordLearning: React.FC = () => {
           }
         });
       });
-      
+
       setCompletedWords(completed);
-      console.log('🎯 Total completed words by category:', 
-        Object.entries(completed).map(([cat, words]) => `${cat}: ${words.size}`).join(', '));
+      console.log(
+        '🎯 Total completed words by category:',
+        Object.entries(completed)
+          .map(([cat, words]) => `${cat}: ${words.size}`)
+          .join(', ')
+      );
     } catch (error) {
       console.error('❌ Failed to load user progress:', error);
     }
@@ -102,7 +114,7 @@ const WordLearning: React.FC = () => {
 
   const generateRandomTargets = () => {
     if (!selectedCategory) return;
-    
+
     const categoryWords = wordsData[selectedCategory as keyof typeof wordsData];
     const shuffled = [...categoryWords].sort(() => Math.random() - 0.5);
     setTargetWords(shuffled.slice(0, wordCount));
@@ -114,27 +126,27 @@ const WordLearning: React.FC = () => {
   const checkAnswer = async (inputToCheck?: string) => {
     const currentInput = inputToCheck || userInput;
     if (targetWords.length === 0 || currentInput.length === 0) return;
-    
+
     const targetWord = targetWords[currentIndex];
-    
+
     console.log('🔍 Checking word answer:', {
       targetWord,
       currentInput: currentInput.toLowerCase(),
       user: user ? user.email : 'not logged in',
       selectedCategory,
-      alreadyCompleted: completedWords[selectedCategory]?.has(targetWord)
+      alreadyCompleted: completedWords[selectedCategory]?.has(targetWord),
     });
-    
+
     if (currentInput.toLowerCase() === targetWord.toLowerCase()) {
       console.log('✅ Correct word answer!');
-      
+
       // 단어 발음 - 개선된 버전
       try {
         // speechSynthesis가 사용 가능한지 확인
         if ('speechSynthesis' in window) {
           // 기존 음성 중단
           speechSynthesis.cancel();
-          
+
           // 약간의 딜레이 후 실행 (브라우저 정책 대응)
           setTimeout(() => {
             const utterance = new SpeechSynthesisUtterance(targetWord);
@@ -142,7 +154,7 @@ const WordLearning: React.FC = () => {
             utterance.pitch = 1;
             utterance.volume = 1.0; // 볼륨 최대
             utterance.lang = 'en-US';
-            
+
             // 이벤트 리스너 추가 (디버깅용)
             utterance.onstart = () => {
               console.log(`🔊 TTS started: ${targetWord}`);
@@ -150,13 +162,13 @@ const WordLearning: React.FC = () => {
             utterance.onend = () => {
               console.log(`✅ TTS finished: ${targetWord}`);
             };
-            utterance.onerror = (event) => {
+            utterance.onerror = event => {
               console.error('❌ TTS error:', event);
             };
-            
+
             console.log(`🎵 Attempting to speak: "${targetWord}"`);
             console.log('Available voices:', speechSynthesis.getVoices().length);
-            
+
             speechSynthesis.speak(utterance);
           }, 100);
         } else {
@@ -165,20 +177,22 @@ const WordLearning: React.FC = () => {
       } catch (error) {
         console.error('❌ TTS error:', error);
       }
-      
+
       // 학습 진행도 저장 (로그인한 사용자만)
       if (user && !completedWords[selectedCategory]?.has(targetWord)) {
         console.log('💾 Attempting to save word progress to Firestore...');
         try {
           await updateWordProgress(user, selectedCategory, targetWord);
-          
+
           // 로컬 상태 업데이트
           setCompletedWords(prev => ({
             ...prev,
-            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetWord])
+            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetWord]),
           }));
-          
-          console.log(`🎉 Word "${targetWord}" in category "${selectedCategory}" progress saved to database successfully!`);
+
+          console.log(
+            `🎉 Word "${targetWord}" in category "${selectedCategory}" progress saved to database successfully!`
+          );
         } catch (error) {
           console.error('❌ Failed to save word progress:', error);
         }
@@ -187,7 +201,7 @@ const WordLearning: React.FC = () => {
       } else if (completedWords[selectedCategory]?.has(targetWord)) {
         console.log(`ℹ️ Word "${targetWord}" already completed - skipping save`);
       }
-      
+
       Swal.fire({
         toast: true,
         position: 'top-end',
@@ -211,12 +225,12 @@ const WordLearning: React.FC = () => {
               confirmButtonText: 'Practice Again',
               cancelButtonText: 'Back to Learning Menu',
               showCancelButton: true,
-              allowOutsideClick: true
-            }).then((result) => {
+              allowOutsideClick: true,
+            }).then(result => {
               if (result.isConfirmed) {
-              generateRandomTargets();
+                generateRandomTargets();
               } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-              navigate('/learn');
+                navigate('/learn');
               }
             });
           }, 1500);
@@ -235,7 +249,7 @@ const WordLearning: React.FC = () => {
     if (isConnected) {
       const handleData = (data: number) => {
         const bits = parseInputBits(data);
-        
+
         if (bits.includes(-1)) {
           handleBackspace();
         } else if (bits.includes(-2)) {
@@ -247,18 +261,18 @@ const WordLearning: React.FC = () => {
           }, 100);
         } else if (bits.length > 0) {
           setActiveDots(bits);
-          
+
           const character = findCharacterFromDots(bits);
           if (character && character.match(/[A-Z]/)) {
             const newInput = userInput + character.toLowerCase();
             setUserInput(newInput);
-            
+
             // 자동으로 답 체크 - 새로운 입력값으로 즉시 체크
             setTimeout(() => {
               checkAnswer(newInput);
             }, 300);
           }
-          
+
           setTimeout(() => {
             setActiveDots([]);
           }, 500);
@@ -270,22 +284,22 @@ const WordLearning: React.FC = () => {
   }, [isConnected, userInput, targetWords, currentIndex]);
 
   const handleBrailleKeyClick = (dot: number) => {
-    const newActiveDots = activeDots.includes(dot) 
-      ? activeDots.filter(d => d !== dot) 
+    const newActiveDots = activeDots.includes(dot)
+      ? activeDots.filter(d => d !== dot)
       : [...activeDots, dot];
-    
+
     setActiveDots(newActiveDots);
     // 자동 입력 제거 - Input 버튼을 눌러야 입력됨
   };
 
   const handleCharacterInput = () => {
     if (activeDots.length === 0) return;
-    
+
     const character = findCharacterFromDots(activeDots);
     if (character && character.match(/[A-Z]/)) {
       const newInput = userInput + character.toLowerCase();
       setUserInput(newInput);
-      
+
       // Input 버튼을 눌렀을 때 답 체크
       setTimeout(() => {
         checkAnswer(newInput);
@@ -308,10 +322,9 @@ const WordLearning: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="max-w-3xl mx-auto text-center my-8">
-            
             <SectionHeader title="Words - Choose Category" />
             <p className="text-gray-600 mb-6">Select a category to start the words learning</p>
-            
+
             {/* Login Status */}
             {!user && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -320,16 +333,16 @@ const WordLearning: React.FC = () => {
                 </p>
               </div>
             )}
-            
+
             {/* Debug Section - 개발 중에만 사용 */}
             {user && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-blue-800 text-sm mb-2">
-                  🐛 Debug: Logged in as {user.email}
-                </p>
+                <p className="text-blue-800 text-sm mb-2">🐛 Debug: Logged in as {user.email}</p>
                 <button
                   onClick={async () => {
-                    console.log('🧪 Manual test: Trying to save word "subject" in "School & Education"');
+                    console.log(
+                      '🧪 Manual test: Trying to save word "subject" in "School & Education"'
+                    );
                     try {
                       await updateWordProgress(user, 'School & Education', 'subject');
                       console.log('✅ Manual test successful!');
@@ -348,10 +361,10 @@ const WordLearning: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {categories.map((category) => {
+            {categories.map(category => {
               const totalWords = wordsData[category as keyof typeof wordsData].length;
               const completedCount = completedWords[category]?.size || 0;
-              
+
               return (
                 <div
                   key={category}
@@ -359,9 +372,7 @@ const WordLearning: React.FC = () => {
                   className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
                 >
                   <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
-                  <p className="text-gray-600">
-                    {totalWords} words available
-                  </p>
+                  <p className="text-gray-600">{totalWords} words available</p>
                   {user && (
                     <p className="text-sm text-purple-600 mt-2">
                       ✓ {completedCount}/{totalWords} completed
@@ -392,22 +403,21 @@ const WordLearning: React.FC = () => {
       <div className="mx-auto">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center my-8">
-          
           <SectionHeader title={`Words - ${selectedCategory}`} />
-          <p className="text-gray-600 mb-6">Type the word using braille patterns - words are automatically checked when complete</p>
-          
+          <p className="text-gray-600 mb-6">
+            Type the word using braille patterns - words are automatically checked when complete
+          </p>
+
           {/* Login Status */}
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">
-                📚 Sign in to save your learning progress!
-              </p>
+              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
             </div>
           )}
-          
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-            <div 
+            <div
               className="bg-gradient-to-r from-purple-500 to-pink-600 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             ></div>
@@ -416,7 +426,9 @@ const WordLearning: React.FC = () => {
             Progress: {currentIndex + 1} of {targetWords.length}
             {user && completedWords[selectedCategory] && (
               <span className="ml-4 text-purple-600">
-                • {completedWords[selectedCategory].size}/{wordsData[selectedCategory as keyof typeof wordsData].length} words learned in this category
+                • {completedWords[selectedCategory].size}/
+                {wordsData[selectedCategory as keyof typeof wordsData].length} words learned in this
+                category
               </span>
             )}
           </div>
@@ -424,23 +436,21 @@ const WordLearning: React.FC = () => {
 
         {/* Words Progress */}
         <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-lg p-6 mb-6">
-          <div className="text-center mb-4 text-lg font-semibold text-gray-700">
-            Progress
-          </div>
+          <div className="text-center mb-4 text-lg font-semibold text-gray-700">Progress</div>
           <div className="flex justify-center space-x-2 flex-wrap">
             {targetWords.map((word, index) => {
               const isCompleted = index < currentIndex;
               const isCurrent = index === currentIndex;
-              
+
               return (
                 <div
                   key={index}
                   className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all mb-2 ${
-                    isCurrent 
-                      ? 'bg-purple-100 border-2 border-purple-500 text-purple-700' 
-                      : isCompleted 
-                        ? 'bg-green-100 border-2 border-green-500 text-green-700' 
-                        : 'bg-gray-100 border-2 border-gray-300 text-gray-500'
+                    isCurrent
+                      ? 'bg-purple-100 border-2 border-purple-500 text-purple-700'
+                      : isCompleted
+                      ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                      : 'bg-gray-100 border-2 border-gray-300 text-gray-500'
                   }`}
                 >
                   {word}
@@ -484,7 +494,7 @@ const WordLearning: React.FC = () => {
                       onClick={() => handleBrailleKeyClick(dot)}
                       className={`w-12 h-12 rounded-full border-2 font-bold text-lg transition-all ${
                         activeDots.includes(dot)
-                          ? 'bg-purple-500 text-white border-purple-500 scale-110' 
+                          ? 'bg-purple-500 text-white border-purple-500 scale-110'
                           : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
                       }`}
                     >
@@ -501,7 +511,7 @@ const WordLearning: React.FC = () => {
                       onClick={() => handleBrailleKeyClick(dot)}
                       className={`w-12 h-12 rounded-full border-2 font-bold text-lg transition-all ${
                         activeDots.includes(dot)
-                          ? 'bg-purple-500 text-white border-purple-500 scale-110' 
+                          ? 'bg-purple-500 text-white border-purple-500 scale-110'
                           : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
                       }`}
                     >
@@ -527,22 +537,20 @@ const WordLearning: React.FC = () => {
               </div>
             </div>
           )}
-          
         </div>
 
         {/* Floating Braille Keyboard Toggle Button */}
         <button
           onClick={() => setShowBrailleKeyboard(!showBrailleKeyboard)}
           className={`fixed left-4 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full shadow-2xl transition-all duration-300 z-50 ${
-            showBrailleKeyboard 
-              ? 'bg-red-500 hover:bg-red-600' 
+            showBrailleKeyboard
+              ? 'bg-red-500 hover:bg-red-600'
               : 'bg-purple-500 hover:bg-purple-600'
           } text-white font-bold text-xs flex flex-col items-center justify-center`}
         >
           <div className="text-lg">⠿</div>
           <div>{showBrailleKeyboard ? 'Hide' : 'Show'}</div>
         </button>
-
 
         {/* Alphabet Reference */}
         <div className="max-w-[968px] mx-auto bg-white rounded-3xl shadow-lg p-6 mb-6">
@@ -553,7 +561,7 @@ const WordLearning: React.FC = () => {
             {Object.keys(BRAILLE_ALPHABET).map((letter, index) => {
               const dots = getDotsFromCharacter(letter);
               const braillePattern = dots ? generateBraillePattern(dots) : '';
-              
+
               return (
                 <div
                   key={letter}
@@ -566,7 +574,6 @@ const WordLearning: React.FC = () => {
             })}
           </div>
         </div>
-
 
         {/* Finish Button */}
         {gameCompleted && (
@@ -592,12 +599,12 @@ const WordLearning: React.FC = () => {
         )}
 
         <div className="max-w-3xl mx-auto text-center my-6">
-            <button
-                onClick={() => setSelectedCategory('')}
-                className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                ← Back to Categories
-            </button>
+          <button
+            onClick={() => setSelectedCategory('')}
+            className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            ← Back to Categories
+          </button>
         </div>
       </div>
     </div>
