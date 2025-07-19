@@ -1,5 +1,9 @@
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { auth, db } from '../../firebase/config';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SignupPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -9,7 +13,7 @@ const SignupPage: React.FC = () => {
     name: '',
     dateOfBirth: '',
     email: '',
-    agreeToTerms: false
+    agreeToTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,16 +22,18 @@ const SignupPage: React.FC = () => {
     uppercase: false,
     lowercase: false,
     number: false,
-    special: false
+    special: false,
   });
+  const navigate = useNavigate();
+  const { signUp } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const inputValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    
+
     setFormData(prev => ({
       ...prev,
-      [name]: inputValue
+      [name]: inputValue,
     }));
     setError('');
 
@@ -43,7 +49,7 @@ const SignupPage: React.FC = () => {
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     });
   };
 
@@ -65,47 +71,61 @@ const SignupPage: React.FC = () => {
       setError('Please enter your username and name.');
       return false;
     }
-    
+
     if (!formData.email) {
       setError('Please enter your email address.');
       return false;
     }
-    
+
     if (getPasswordStrengthScore() < 3) {
       setError('Please choose a stronger password.');
       return false;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
       return false;
     }
-    
+
     if (!formData.agreeToTerms) {
       setError('Please agree to the Terms of Service and Privacy Policy.');
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
-    setError('');
 
+    if (!validateForm()) return;
     try {
-      // TODO: Implement Firebase Auth signup
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
-      console.log('Signup successful:', formData.email);
-      // Redirect to welcome page or dashboard
-      
-    } catch (err) {
-      setError('Failed to create account. Please try again.');
+      setIsLoading(true);
+      setError('');
+      const { email, password } = formData;
+      console.log('회원가입 시도:', email, password);
+
+      // 1) 계정 생성
+      const user = await signUp(email, password);
+
+      setError('');
+
+      console.log('회원가입 성공:', user);
+
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        createdAt: serverTimestamp(),
+        // name, photoURL 등 추가 정보가 있다면 넣기
+      });
+
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log('자동 로그인 완료');
+
+      navigate('/');
+    } catch (err: any) {
+      console.error(err); // 전체 에러 객체 살펴보고
+      console.log(err.code, err.message);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -119,19 +139,30 @@ const SignupPage: React.FC = () => {
           <div className="flex space-x-3 sm:space-x-4 lg:space-x-8 items-center">
             <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
             <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light text-gray-600 px-4 sm:px-8 lg:px-12 xl:px-20">Sign Up</h2>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light text-gray-600 px-4 sm:px-8 lg:px-12 xl:px-20">
+              Sign Up
+            </h2>
             <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
             <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
           </div>
-        
+
           <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl lg:shadow-2xl p-6 sm:p-8 lg:p-10 xl:p-12">
-            
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
                   <div className="flex">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 mr-2 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <p className="text-red-700 text-xs sm:text-sm">{error}</p>
                   </div>
@@ -140,7 +171,10 @@ const SignupPage: React.FC = () => {
 
               {/* Username */}
               <div>
-                <label htmlFor="username" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="username"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   username
                 </label>
                 <input
@@ -157,7 +191,10 @@ const SignupPage: React.FC = () => {
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   password
                 </label>
                 <input
@@ -170,38 +207,58 @@ const SignupPage: React.FC = () => {
                   className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
                   placeholder="password"
                 />
-                
+
                 {/* Password Strength Indicator */}
                 {formData.password && (
                   <div className="mt-2">
                     <div className="flex items-center space-x-2">
                       <div className="flex-1 bg-gray-200 rounded-full h-1.5 sm:h-2">
-                        <div 
+                        <div
                           className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
                           style={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}
                         ></div>
                       </div>
                       <span className="text-xs text-gray-500">
-                        {getPasswordStrengthScore() <= 2 ? 'Weak' : 
-                          getPasswordStrengthScore() <= 3 ? 'Fair' :
-                          getPasswordStrengthScore() <= 4 ? 'Good' : 'Strong'}
+                        {getPasswordStrengthScore() <= 2
+                          ? 'Weak'
+                          : getPasswordStrengthScore() <= 3
+                          ? 'Fair'
+                          : getPasswordStrengthScore() <= 4
+                          ? 'Good'
+                          : 'Strong'}
                       </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-1 sm:gap-2 mt-2 text-xs">
-                      <div className={`flex items-center ${passwordStrength.length ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div
+                        className={`flex items-center ${
+                          passwordStrength.length ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
                         <span className="mr-1">{passwordStrength.length ? '✓' : '○'}</span>
                         8+ characters
                       </div>
-                      <div className={`flex items-center ${passwordStrength.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div
+                        className={`flex items-center ${
+                          passwordStrength.uppercase ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
                         <span className="mr-1">{passwordStrength.uppercase ? '✓' : '○'}</span>
                         Uppercase
                       </div>
-                      <div className={`flex items-center ${passwordStrength.lowercase ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div
+                        className={`flex items-center ${
+                          passwordStrength.lowercase ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
                         <span className="mr-1">{passwordStrength.lowercase ? '✓' : '○'}</span>
                         Lowercase
                       </div>
-                      <div className={`flex items-center ${passwordStrength.number ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div
+                        className={`flex items-center ${
+                          passwordStrength.number ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
                         <span className="mr-1">{passwordStrength.number ? '✓' : '○'}</span>
                         Number
                       </div>
@@ -212,7 +269,10 @@ const SignupPage: React.FC = () => {
 
               {/* Confirm Password */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   Confirm Password
                 </label>
                 <input
@@ -232,7 +292,10 @@ const SignupPage: React.FC = () => {
 
               {/* Name */}
               <div>
-                <label htmlFor="name" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="name"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   Name
                 </label>
                 <input
@@ -249,7 +312,10 @@ const SignupPage: React.FC = () => {
 
               {/* Date of Birth */}
               <div>
-                <label htmlFor="dateOfBirth" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="dateOfBirth"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   Date of Birth
                 </label>
                 <div className="relative">
@@ -263,8 +329,18 @@ const SignupPage: React.FC = () => {
                     placeholder="Date of Birth"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -272,7 +348,10 @@ const SignupPage: React.FC = () => {
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm sm:text-base font-semibold text-gray-700 mb-2"
+                >
                   Email Address
                 </label>
                 <input
@@ -318,9 +397,25 @@ const SignupPage: React.FC = () => {
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Creating Account...
                   </>
