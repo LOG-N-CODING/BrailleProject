@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getLearningStats, getUserLearningProgress } from '../../utils/learningProgress';
+import { getUserGameHistory, getUserBestRecords, getGlobalRanking } from '../../utils/gameHistory';
 import { useNavigate } from 'react-router-dom';
 import { SectionHeader } from '../../components/UI';
 
@@ -16,6 +17,35 @@ interface CategoryProgress {
   [category: string]: { [item: string]: number };
 }
 
+interface GameHistoryEntry {
+  id: string;
+  username: string;
+  type: 'GAME' | 'SPRINT';
+  cpm: number;
+  combo: number;
+  score: number;
+  accuracy: number;
+  createdAt: Date;
+}
+
+interface BestRecords {
+  highestCPM: number;
+  highestCombo: number;
+  highestScore: number;
+  bestAccuracy: number;
+}
+
+interface GlobalRankingEntry {
+  id: string;
+  username: string;
+  name?: string;
+  birth?: string;
+  score: number;
+  cpm: number;
+  accuracy: number;
+  createdAt: Date;
+}
+
 const MyPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -23,24 +53,24 @@ const MyPage: React.FC = () => {
   const [stats, setStats] = useState<LearningStats | null>(null);
   const [wordCategories, setWordCategories] = useState<CategoryProgress>({});
   const [phraseCategories, setPhraseCategories] = useState<CategoryProgress>({});
+  const [bestRecords, setBestRecords] = useState<BestRecords | null>(null);
+  const [typingGameHistory, setTypingGameHistory] = useState<GameHistoryEntry[]>([]);
+  const [sprintGameHistory, setSprintGameHistory] = useState<GameHistoryEntry[]>([]);
+  const [globalRanking, setGlobalRanking] = useState<GlobalRankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    loadUserStats();
-  }, [user, navigate]);
-
-  const loadUserStats = async () => {
+  const loadUserStats = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-      const [learningStats, userProgress] = await Promise.all([
+      const [learningStats, userProgress, bestRecords, typingHistory, sprintHistory, ranking] = await Promise.all([
         getLearningStats(user),
-        getUserLearningProgress(user)
+        getUserLearningProgress(user),
+        getUserBestRecords(user),
+        getUserGameHistory(user, 'GAME', 5),
+        getUserGameHistory(user, 'SPRINT', 5),
+        getGlobalRanking(5)
       ]);
 
       if (learningStats) {
@@ -50,12 +80,35 @@ const MyPage: React.FC = () => {
       // 카테고리별 진행도 설정
       setWordCategories(userProgress.words || {});
       setPhraseCategories(userProgress.phrases || {});
+      
+      // 게임 데이터 설정
+      setBestRecords(bestRecords);
+      setTypingGameHistory(typingHistory);
+      setSprintGameHistory(sprintHistory);
+      setGlobalRanking(ranking);
+      
+      // 디버깅용 로그
+      console.log('🎮 Game data loaded:', {
+        bestRecords,
+        typingHistoryCount: typingHistory.length,
+        sprintHistoryCount: sprintHistory.length,
+        globalRankingCount: ranking.length,
+        globalRanking: ranking
+      });
     } catch (error) {
       console.error('Failed to load user stats:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    loadUserStats();
+  }, [user, navigate, loadUserStats]);
 
   if (!user) {
     return null;
@@ -157,22 +210,72 @@ const MyPage: React.FC = () => {
   );
 
   const renderGameHistory = () => {
-    // 샘플 게임 통계 데이터
-    const gameStats = [
-      { rank: 6, name: 'Emma', birth: '1995', score: '4200', cpm: '28', accuracy: '95%' },
-      { rank: 7, name: 'Oliver', birth: '1998', score: '3800', cpm: '25', accuracy: '88%' },
-      { rank: 8, name: 'Sophia', birth: '1993', score: '3500', cpm: '24', accuracy: '92%' },
-      { rank: 9, name: 'Lucas', birth: '1997', score: '3200', cpm: '22', accuracy: '85%' },
-      { rank: 'Me', name: 'Ahn', birth: '2009', score: '5500', cpm: '32', accuracy: '100%' }
-    ];
+    // 실제 글로벌 랭킹 데이터 사용
+    let gameStats: {
+      rank: number | string;
+      name: string;
+      birth: string;
+      score: number;
+      cpm: number;
+      accuracy: number;
+    }[] = globalRanking.map((user, index) => ({
+      rank: index + 1,
+      name: user.name || user.username.split('@')[0],
+      birth: user.birth || '2024',
+      score: user.score,
+      cpm: user.cpm,
+      accuracy: Math.round(user.accuracy)
+    }));
 
-    const rankCards = [
-      { name: 'Challenger', image: '/images/figma/my/rank/challenger.png', user: '1 John' },
-      { name: 'Master', image: '/images/figma/my/rank/master.png', user: '2 Mia' },
-      { name: 'Gold', image: '/images/figma/my/rank/gold.png', user: '3 Liam' },
-      { name: 'Silver', image: '/images/figma/my/rank/silver.png', user: '4 Emma' },
-      { name: 'Bronze', image: '/images/figma/my/rank/bronze.png', user: '5 Noah' }
-    ];
+    // 현재 사용자가 랭킹에 없는 경우 추가
+    if (bestRecords && bestRecords.highestScore > 0) {
+      const userInRanking = gameStats.find(stat => 
+        stat.name === (user?.email?.split('@')[0] || 'You')
+      );
+
+      if (!userInRanking) {
+        const userRecord = {
+          rank: 'Me' as number | string,
+          name: user?.email?.split('@')[0] || 'You',
+          birth: '2024',
+          score: bestRecords.highestScore,
+          cpm: bestRecords.highestCPM,
+          accuracy: Math.round(bestRecords.bestAccuracy)
+        };
+
+        // 점수 기준으로 정렬하여 랭킹 결정
+        const allStats = [...gameStats, userRecord];
+        allStats.sort((a, b) => b.score - a.score);
+        
+        // 사용자의 실제 랭킹 찾기
+        const userRankIndex = allStats.findIndex(stat => stat.name === userRecord.name);
+        userRecord.rank = userRankIndex + 1;
+
+        // 상위 5개만 표시하되, 사용자가 5위 밖이면 'Me'로 표시
+        if (userRankIndex >= 5) {
+          userRecord.rank = 'Me';
+          gameStats.push(userRecord);
+        }
+      }
+    }
+
+    // 랭크 카드 데이터 (실제 사용자 데이터 기반)
+    const rankCards = gameStats.slice(0, 5).map((stat, index) => {
+      const rankNames = ['Challenger', 'Master', 'Gold', 'Silver', 'Bronze'];
+      const rankImages = [
+        '/images/figma/my/rank/challenger.png',
+        '/images/figma/my/rank/master.png', 
+        '/images/figma/my/rank/gold.png',
+        '/images/figma/my/rank/silver.png',
+        '/images/figma/my/rank/bronze.png'
+      ];
+      
+      return {
+        name: rankNames[index] || 'Bronze',
+        image: rankImages[index] || '/images/figma/my/rank/bronze.png',
+        user: `${index + 1} ${stat.name}`
+      };
+    });
 
     return (
       <div className="w-full max-w-full ">
@@ -188,7 +291,7 @@ const MyPage: React.FC = () => {
         </div>
 
         {/* Rank Cards Section */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8" id="rank-cards">
           {rankCards.map((rank, index) => (
             <div 
               key={index} 
@@ -212,7 +315,7 @@ const MyPage: React.FC = () => {
         </div>
 
         {/* Game Statistics Table */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" id="rank-list">
           <div className="overflow-x-auto">
             <table className="w-full min-w-full">
               <thead className="bg-gray-50">
@@ -257,13 +360,13 @@ const MyPage: React.FC = () => {
                       {stat.birth}
                     </td>
                     <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                      {stat.score}
+                      {stat.score.toLocaleString()}
                     </td>
                     <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
                       {stat.cpm}
                     </td>
                     <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                      {stat.accuracy}
+                      {stat.accuracy}%
                     </td>
                   </tr>
                 ))}
@@ -285,10 +388,14 @@ const MyPage: React.FC = () => {
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
               <div className="text-center">
                 <h4 className="text-lg font-semibold text-gray-900 mb-2">Highest CPM</h4>
-                <div className="text-4xl font-bold text-blue-600 mb-1">88</div>
+                <div className="text-4xl font-bold text-blue-600 mb-1">
+                  {bestRecords?.highestCPM || 0}
+                </div>
                 <div className="text-sm text-gray-600">CPM</div>
                 <div className="mt-3 text-sm text-gray-500">
-                  정확도 <span className="font-medium text-gray-700">100%</span>
+                  Accuracy <span className="font-medium text-gray-700">
+                    {bestRecords?.bestAccuracy ? Math.round(bestRecords.bestAccuracy) : 0}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -298,7 +405,9 @@ const MyPage: React.FC = () => {
               <div className="text-center">
                 <h4 className="text-lg font-semibold text-gray-900 mb-2">Max Combo</h4>
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <div className="text-4xl font-bold text-orange-500">12</div>
+                  <div className="text-4xl font-bold text-orange-500">
+                    {bestRecords?.highestCombo || 0}
+                  </div>
                   <span className="text-orange-500 text-xl">🔥</span>
                 </div>
                 <div className="text-sm text-gray-600">Combo</div>
@@ -317,20 +426,14 @@ const MyPage: React.FC = () => {
           {/* Section Title */}
           <p className="text-gray-700 text-2xl text-center my-20">Typing Game</p>
 
-          {/* Past Play Statistics Table */}
+          {/* Past Play Statistics Table - Typing Game */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Rank
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Birth
+                      No
                     </th>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
                       Score
@@ -339,48 +442,54 @@ const MyPage: React.FC = () => {
                       CPM
                     </th>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
+                      Combo
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
                       Accuracy
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
+                      Date
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Sample past play data */}
-                  {[
-                    { rank: '1', name: 'John', birth: '2010-05-12', score: '50,000', cpm: '120', accuracy: '99%' },
-                    { rank: '2', name: 'Mia', birth: '2010-05-12', score: '32,000', cpm: '88', accuracy: '99%' },
-                    { rank: '3', name: 'Liam', birth: '2010-05-12', score: '28,000', cpm: '75', accuracy: '98%' },
-                    { rank: '4', name: 'Emma', birth: '2010-05-12', score: '25,000', cpm: '68', accuracy: '97%' },
-                    { rank: '5', name: 'Noah', birth: '2010-05-12', score: '10,000', cpm: '55', accuracy: '95%' },
-                    { rank: 'Me', name: 'Ahn', birth: '2009', score: '5,500', cpm: '32', accuracy: '100%' },
-                  ].map((stat, index) => (
-                    <tr 
-                      key={index} 
-                      className={`
-                        ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                        ${stat.rank === 'Me' ? 'bg-blue-50 border-l-4 border-blue-500' : ''}
-                        hover:bg-gray-100 transition-colors
-                      `}
-                    >
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.rank}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.name}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.birth}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.score}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.cpm}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.accuracy}
+                  {typingGameHistory.length > 0 ? (
+                    typingGameHistory.map((game, index) => (
+                      <tr 
+                        key={game.id} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}
+                      >
+                        
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {index + 1}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.score.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.cpm}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.combo}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {Math.round(game.accuracy)}%
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.createdAt instanceof Date 
+                          ? game.createdAt.toLocaleString() 
+                          : (game.createdAt as any)?.toDate?.()?.toLocaleString() || 
+                            new Date(game.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                        No Typing Game records yet.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -396,13 +505,7 @@ const MyPage: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Rank
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
-                      Birth
+                      No
                     </th>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
                       Score
@@ -411,48 +514,53 @@ const MyPage: React.FC = () => {
                       CPM
                     </th>
                     <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
+                      Combo
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
                       Accuracy
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs sm:text-sm font-bold text-gray-800 uppercase tracking-wider">
+                      Date
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Sample past play data */}
-                  {[
-                    { rank: '1', name: 'John', birth: '2010-05-12', score: '50,000', cpm: '120', accuracy: '99%' },
-                    { rank: '2', name: 'Mia', birth: '2010-05-12', score: '32,000', cpm: '88', accuracy: '99%' },
-                    { rank: '3', name: 'Liam', birth: '2010-05-12', score: '28,000', cpm: '75', accuracy: '98%' },
-                    { rank: '4', name: 'Emma', birth: '2010-05-12', score: '25,000', cpm: '68', accuracy: '97%' },
-                    { rank: '5', name: 'Noah', birth: '2010-05-12', score: '10,000', cpm: '55', accuracy: '95%' },
-                    { rank: 'Me', name: 'Ahn', birth: '2009', score: '5,500', cpm: '32', accuracy: '100%' },
-                  ].map((stat, index) => (
-                    <tr 
-                      key={index} 
-                      className={`
-                        ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                        ${stat.rank === 'Me' ? 'bg-blue-50 border-l-4 border-blue-500' : ''}
-                        hover:bg-gray-100 transition-colors
-                      `}
-                    >
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.rank}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.name}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.birth}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.score}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.cpm}
-                      </td>
-                      <td className={`px-3 py-4 whitespace-nowrap text-xs sm:text-sm ${stat.rank === 'Me' ? 'font-bold text-blue-600' : 'text-gray-800'}`}>
-                        {stat.accuracy}
+                  {sprintGameHistory.length > 0 ? (
+                    sprintGameHistory.map((game, index) => (
+                      <tr 
+                        key={game.id} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}
+                      >
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {index + 1}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.score.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.cpm}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.combo}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {Math.round(game.accuracy)}%
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                          {game.createdAt instanceof Date 
+                          ? game.createdAt.toLocaleString() 
+                          : (game.createdAt as any)?.toDate?.()?.toLocaleString() || 
+                            new Date(game.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                        No Sprint game history found
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

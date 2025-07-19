@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { BRAILLE_NUMBERS, getDotsFromCharacter, generateBraillePattern, parseInputBits, findCharacterFromDots } from '../../utils/braille';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { saveGameHistory } from '../../utils/gameHistory';
 
 interface GameStats {
   score: number;
@@ -19,10 +21,11 @@ interface GameStats {
 
 const TypingSprint: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   
   // Game duration in seconds - 게임 지속시간 (초)
-  const GAME_DURATION = 60;
+  const GAME_DURATION = 10;
   
   const [gameStats, setGameStats] = useState<GameStats>({
     score: 0,
@@ -45,6 +48,7 @@ const TypingSprint: React.FC = () => {
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [gameHistory, setGameHistory] = useState<string[]>([]);
   const [upcomingTargets, setUpcomingTargets] = useState<string[]>([]);
+  const [historyAlreadySaved, setHistoryAlreadySaved] = useState(false);
 
   // Character pools
   const alphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -141,6 +145,7 @@ const TypingSprint: React.FC = () => {
     });
     setIsGameActive(true);
     setGameFinished(false);
+    setHistoryAlreadySaved(false); // 히스토리 저장 상태 초기화
     setGameHistory([]); // 히스토리 초기화
     generateRandomTarget();
     generateUpcomingTargets(); // 다음 타겟들 생성
@@ -157,6 +162,16 @@ const TypingSprint: React.FC = () => {
           // Calculate final stats safely
           const finalCPM = prev.startTime ? Math.round(prev.charactersTyped / ((Date.now() - prev.startTime) / (1000 * 60))) : 0;
           const finalAccuracy = prev.charactersTyped > 0 ? Math.round((prev.correctAnswers / prev.charactersTyped) * 100) : 100;
+          
+          // 게임 히스토리 저장 - 타이머 종료 시에만 저장
+          const finalStatsForSave = {
+            ...prev,
+            cpm: finalCPM,
+            accuracy: finalAccuracy
+          };
+          
+          // 즉시 저장 처리 (setTimeout 제거하여 동기적으로 처리)
+          saveGameResult(finalStatsForSave);
           
           // Show final results
           setTimeout(() => {
@@ -197,19 +212,76 @@ const TypingSprint: React.FC = () => {
   };
 
   const stopGame = () => {
+    if (!isGameActive) return; // 이미 중지된 게임이면 리턴
+    
     setIsGameActive(false);
     setGameFinished(true);
     if (gameTimer) {
       clearInterval(gameTimer);
       setGameTimer(null);
     }
+    
+    // 수동 종료 시에는 게임 히스토리를 저장하지 않음 (타이머 종료 시에만 저장)
+    console.log('🛑 Game manually stopped - history not saved');
   };
 
   const retryGame = () => {
     if (gameTimer) {
       clearInterval(gameTimer);
     }
+    // 이전 게임 상태 완전히 초기화 후 새 게임 시작
+    setHistoryAlreadySaved(false);
+    setGameFinished(false);
     startGame();
+  };
+
+  // 게임 히스토리 저장 함수
+  const saveGameResult = async (finalStats: GameStats) => {
+    console.log(`🔍 saveGameResult called - historyAlreadySaved: ${historyAlreadySaved}`);
+    
+    if (!user) {
+      console.log('⚠️ User not logged in - skipping game history save');
+      return;
+    }
+
+    if (historyAlreadySaved) {
+      console.log('⚠️ Game history already saved - skipping duplicate save');
+      return;
+    }
+
+    // 저장 시작 전에 즉시 플래그 설정하여 중복 호출 방지
+    console.log('🚀 Setting historyAlreadySaved to true');
+    setHistoryAlreadySaved(true);
+
+    try {
+      console.log('💾 Saving Sprint game history...');
+
+      const finalCPM = finalStats.startTime 
+        ? Math.round(finalStats.charactersTyped / ((Date.now() - finalStats.startTime) / (1000 * 60))) 
+        : 0;
+      const accuracy = finalStats.charactersTyped > 0 
+        ? (finalStats.correctAnswers / finalStats.charactersTyped) * 100 
+        : 0;
+
+      const gameData = {
+        type: 'SPRINT' as const,
+        cpm: finalCPM,
+        combo: finalStats.maxCombo,
+        score: finalStats.score,
+        accuracy: Math.round(accuracy * 100) / 100 // 소수점 2자리까지
+      };
+
+      console.log('📊 Game data to save:', gameData);
+      
+      await saveGameHistory(user, gameData);
+
+      console.log('✅ Sprint game history saved successfully!');
+    } catch (error) {
+      console.error('❌ Failed to save sprint game history:', error);
+      // 실패한 경우에만 플래그 재설정하여 재시도 가능하게 함
+      console.log('🔄 Resetting historyAlreadySaved to false due to error');
+      setHistoryAlreadySaved(false);
+    }
   };
 
   // 점자 키보드 토글

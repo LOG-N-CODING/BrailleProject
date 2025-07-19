@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { BRAILLE_NUMBERS, getDotsFromCharacter, generateBraillePattern, parseInputBits, findCharacterFromDots } from '../../utils/braille';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { saveGameHistory } from '../../utils/gameHistory';
 
 interface GameStats {
   round: number;
@@ -18,6 +20,7 @@ interface GameStats {
 
 const TypingGame: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   
   const [gameStats, setGameStats] = useState<GameStats>({
@@ -143,6 +146,33 @@ const TypingGame: React.FC = () => {
     startGame();
   };
 
+  // 게임 히스토리 저장 함수
+  const saveGameResult = async (finalStats: GameStats) => {
+    if (!user) {
+      console.log('⚠️ User not logged in - skipping game history save');
+      return;
+    }
+
+    try {
+      const accuracy = finalStats.charactersTyped > 0 
+        ? (finalStats.correctAnswers / finalStats.charactersTyped) * 100 
+        : 0;
+
+      await saveGameHistory(user, {
+        type: 'GAME',
+        cpm: finalStats.cpm,
+        combo: finalStats.maxCombo,
+        score: finalStats.score,
+        accuracy: Math.round(accuracy * 100) / 100 // 소수점 2자리까지
+      });
+
+      console.log('✅ Game history saved successfully!');
+    } catch (error) {
+      console.error('❌ Failed to save game history:', error);
+      // 에러가 발생해도 게임 진행에는 영향을 주지 않음
+    }
+  };
+
   // 점자 키보드 토글
   const toggleKeyboard = () => {
     setKeyboardVisible(!keyboardVisible);
@@ -211,6 +241,9 @@ const TypingGame: React.FC = () => {
 
               setIsGameActive(false);
               setGameFinished(true);
+              
+              // 게임 히스토리 저장
+              saveGameResult(newStats);
               
               // Show final results
               setTimeout(() => {
@@ -299,6 +332,9 @@ const TypingGame: React.FC = () => {
               
               setIsGameActive(false);
               setGameFinished(true);
+              
+              // 게임 히스토리 저장
+              saveGameResult(newStats);
               
               // Show final results
               setTimeout(() => {
@@ -401,6 +437,9 @@ const TypingGame: React.FC = () => {
         setIsGameActive(false);
         setGameFinished(true);
         
+        // 게임 히스토리 저장
+        saveGameResult(newStats);
+        
         // Show final results
         setTimeout(() => {
           Swal.fire({
@@ -488,6 +527,9 @@ const TypingGame: React.FC = () => {
         
         setIsGameActive(false);
         setGameFinished(true);
+        
+        // 게임 히스토리 저장
+        saveGameResult(newStats);
         
         // Show final results
         setTimeout(() => {

@@ -2,16 +2,26 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 사용자별 데이터 접근 규칙
+    match /users/{userId} {
+      // 사용자 기본 정보 - 로그인한 사용자는 모든 사용자의 기본 정보 읽기 가능 (랭킹용)
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // 사용자 학습 진행도 - 로그인한 사용자만 자신의 데이터에 접근 가능
+      match /learningProgress/data {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // 게임 히스토리 - 로그인한 사용자는 모든 사용자의 게임 히스토리 읽기 가능 (랭킹용)
+      match /gameHistory/{gameId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // 기타 임시 규칙 (필요에 따라 수정)
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
       allow read, write: if request.time < timestamp.date(2025, 8, 11);
     }
   }

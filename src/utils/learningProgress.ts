@@ -37,7 +37,7 @@ export const createInitialLearningProgress = (): LearningProgress => {
 // 사용자의 학습 진행도 가져오기
 export const getUserLearningProgress = async (user: User): Promise<LearningProgress> => {
   try {
-    const progressRef = doc(db, 'users', user.uid, 'data', 'learningProgress');
+    const progressRef = doc(db, 'users', user.uid, 'learningProgress', 'data');
     const progressSnap = await getDoc(progressRef);
 
     if (progressSnap.exists()) {
@@ -57,11 +57,11 @@ export const getUserLearningProgress = async (user: User): Promise<LearningProgr
 // 알파벳 학습 완료 저장
 export const updateLetterProgress = async (user: User, letter: string): Promise<void> => {
   console.log('🔥 updateLetterProgress called with:', { userId: user.uid, email: user.email, letter });
-  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2Fdata~2FlearningProgress`);
+  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2FlearningProgress~2Fdata`);
   
   try {
-    const progressRef = doc(db, 'users', user.uid, 'data', 'learningProgress');
-    console.log('📍 Firestore reference path:', `users/${user.uid}/data/learningProgress`);
+    const progressRef = doc(db, 'users', user.uid, 'learningProgress', 'data');
+    console.log('📍 Firestore reference path:', `users/${user.uid}/learningProgress/data`);
     
     const progressSnap = await getDoc(progressRef);
     console.log('📄 Document exists:', progressSnap.exists());
@@ -117,11 +117,11 @@ export const updateLetterProgress = async (user: User, letter: string): Promise<
 // 숫자 학습 완료 저장
 export const updateNumberProgress = async (user: User, number: string): Promise<void> => {
   console.log('🔥 updateNumberProgress called with:', { userId: user.uid, email: user.email, number });
-  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2Fdata~2FlearningProgress`);
+  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2FlearningProgress~2Fdata`);
   
   try {
-    const progressRef = doc(db, 'users', user.uid, 'data', 'learningProgress');
-    console.log('📍 Firestore reference path:', `users/${user.uid}/data/learningProgress`);
+    const progressRef = doc(db, 'users', user.uid, 'learningProgress', 'data');
+    console.log('📍 Firestore reference path:', `users/${user.uid}/learningProgress/data`);
     
     const progressSnap = await getDoc(progressRef);
     console.log('📄 Document exists:', progressSnap.exists());
@@ -176,11 +176,11 @@ export const updateNumberProgress = async (user: User, number: string): Promise<
 // 단어 학습 완료 저장
 export const updateWordProgress = async (user: User, category: string, word: string): Promise<void> => {
   console.log('🔥 updateWordProgress called with:', { userId: user.uid, email: user.email, category, word });
-  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2Fdata~2FlearningProgress`);
+  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2FlearningProgress~2Fdata`);
   
   try {
-    const progressRef = doc(db, 'users', user.uid, 'data', 'learningProgress');
-    console.log('📍 Firestore reference path:', `users/${user.uid}/data/learningProgress`);
+    const progressRef = doc(db, 'users', user.uid, 'learningProgress', 'data');
+    console.log('📍 Firestore reference path:', `users/${user.uid}/learningProgress/data`);
     
     const progressSnap = await getDoc(progressRef);
     console.log('📄 Document exists:', progressSnap.exists());
@@ -239,11 +239,11 @@ export const updateWordProgress = async (user: User, category: string, word: str
 // 숙어 학습 완료 저장
 export const updatePhraseProgress = async (user: User, category: string, phrase: string): Promise<void> => {
   console.log('🔥 updatePhraseProgress called with:', { userId: user.uid, email: user.email, category, phrase });
-  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2Fdata~2FlearningProgress`);
+  console.log('🗂️ Firebase Console URL:', `https://console.firebase.google.com/project/braille-app-19a76/firestore/data/~2Fusers~2F${user.uid}~2FlearningProgress~2Fdata`);
   
   try {
-    const progressRef = doc(db, 'users', user.uid, 'data', 'learningProgress');
-    console.log('📍 Firestore reference path:', `users/${user.uid}/data/learningProgress`);
+    const progressRef = doc(db, 'users', user.uid, 'learningProgress', 'data');
+    console.log('📍 Firestore reference path:', `users/${user.uid}/learningProgress/data`);
     
     const progressSnap = await getDoc(progressRef);
     console.log('📄 Document exists:', progressSnap.exists());
