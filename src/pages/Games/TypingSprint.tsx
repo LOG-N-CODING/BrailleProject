@@ -21,6 +21,9 @@ const TypingSprint: React.FC = () => {
   const navigate = useNavigate();
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   
+  // Game duration in seconds - 게임 지속시간 (초)
+  const GAME_DURATION = 60;
+  
   const [gameStats, setGameStats] = useState<GameStats>({
     score: 0,
     combo: 0,
@@ -30,7 +33,7 @@ const TypingSprint: React.FC = () => {
     startTime: null,
     charactersTyped: 0,
     correctAnswers: 0,
-    timeRemaining: 60
+    timeRemaining: GAME_DURATION
   });
 
   const [currentTarget, setCurrentTarget] = useState<string>('');
@@ -134,7 +137,7 @@ const TypingSprint: React.FC = () => {
       startTime: Date.now(),
       charactersTyped: 0,
       correctAnswers: 0,
-      timeRemaining: 60
+      timeRemaining: GAME_DURATION
     });
     setIsGameActive(true);
     setGameFinished(false);
@@ -142,7 +145,7 @@ const TypingSprint: React.FC = () => {
     generateRandomTarget();
     generateUpcomingTargets(); // 다음 타겟들 생성
 
-    // Start 60-second timer
+    // Start game timer
     const timer = setInterval(() => {
       setGameStats(prev => {
         const newTimeRemaining = prev.timeRemaining - 1;
@@ -150,6 +153,10 @@ const TypingSprint: React.FC = () => {
           setIsGameActive(false);
           setGameFinished(true);
           clearInterval(timer);
+          
+          // Calculate final stats safely
+          const finalCPM = prev.startTime ? Math.round(prev.charactersTyped / ((Date.now() - prev.startTime) / (1000 * 60))) : 0;
+          const finalAccuracy = prev.charactersTyped > 0 ? Math.round((prev.correctAnswers / prev.charactersTyped) * 100) : 100;
           
           // Show final results
           setTimeout(() => {
@@ -159,20 +166,26 @@ const TypingSprint: React.FC = () => {
                 <div style="text-align: left;">
                   <p><strong>Final Score:</strong> ${prev.score}</p>
                   <p><strong>Max Combo:</strong> ${prev.maxCombo}</p>
-                  <p><strong>CPM:</strong> ${calculateCPM()}</p>
-                  <p><strong>Accuracy:</strong> ${calculateAccuracy()}%</p>
+                  <p><strong>CPM:</strong> ${finalCPM}</p>
+                  <p><strong>Accuracy:</strong> ${finalAccuracy}%</p>
                 </div>
               `,
               icon: 'info',
               confirmButtonText: 'Play Again',
               showCancelButton: true,
-              cancelButtonText: 'Back to Menu'
+              cancelButtonText: 'Back to Menu',
+              allowOutsideClick: false,
+              allowEscapeKey: false
             }).then((result) => {
               if (result.isConfirmed) {
                 retryGame();
-              } else {
-                navigate('/games');
+              } else if (result.isDismissed || result.dismiss === Swal.DismissReason.cancel) {
+                // navigate('/games');
               }
+            }).catch((error) => {
+              console.error('SweetAlert2 error:', error);
+              // Fallback: navigate to games if SweetAlert2 fails
+              // navigate('/games');
             });
           }, 500);
         }
@@ -485,7 +498,7 @@ const TypingSprint: React.FC = () => {
             </div>
             
             <p className="text-lg text-black font-light">
-              Type as many characters as possible in 60 seconds!
+              Type as many characters as possible in {GAME_DURATION} seconds!
             </p>
           </div>
 
@@ -536,13 +549,13 @@ const TypingSprint: React.FC = () => {
                 <motion.div
                 className="h-full bg-gradient-to-r from-red-500 to-red-600"
                 initial={{ width: "0%" }}
-                animate={{ width: `${((60 - gameStats.timeRemaining) / 60) * 100}%` }}
+                animate={{ width: `${((GAME_DURATION - gameStats.timeRemaining) / GAME_DURATION) * 100}%` }}
                 transition={{ duration: 0.5, ease: "linear" }}
                 />
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-sm text-gray-600">00:00</span>
-                <span className="text-sm text-gray-600">01:00</span>
+                <span className="text-sm text-gray-600">{formatTime(GAME_DURATION)}</span>
               </div>
             </div>
 
@@ -726,7 +739,7 @@ const TypingSprint: React.FC = () => {
               <p className="text-gray-600 text-lg">
                 Press the corresponding keyboard key for each displayed character.<br/>
                 Keep your combo going for bonus points!<br/>
-                <strong>Goal:</strong> Type as fast and accurately as possible in 60 seconds.
+                <strong>Goal:</strong> Type as fast and accurately as possible in {GAME_DURATION} seconds.
               </p>
             </div>
           )}
