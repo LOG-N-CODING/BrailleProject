@@ -180,55 +180,35 @@ const TypingGame: React.FC = () => {
           }
           
           if (pressedKey === currentTarget) {
-            // 정답 처리 로직 (handleKeyPress와 동일)
-            const newCombo = gameStats.combo + 1;
-            const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
-            
-            const newStats = {
-              ...gameStats,
-              round: gameStats.round + 1,
-              score: gameStats.score + 10,
-              combo: newCombo,
-              maxCombo: newMaxCombo,
-              charactersTyped: gameStats.charactersTyped + 1,
-              correctAnswers: gameStats.correctAnswers + 1,
-              cpm: calculateCPM()
-            };
+            // Check if game is finished (10 rounds) BEFORE incrementing round
+            if (gameStats.round >= 10) {
+              // 정답 처리 (점수만 업데이트, 라운드는 증가시키지 않음)
+              const newCombo = gameStats.combo + 1;
+              const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
+              
+              const newStats = {
+                ...gameStats,
+                score: gameStats.score + 10,
+                combo: newCombo,
+                maxCombo: newMaxCombo,
+                charactersTyped: gameStats.charactersTyped + 1,
+                correctAnswers: gameStats.correctAnswers + 1,
+                cpm: calculateCPM()
+              };
 
-            setGameStats(newStats);
+              setGameStats(newStats);
+              
+              // 정답 음성 출력
+              if ('speechSynthesis' in window) {
+                const wordToSpeak = getEnglishWord(currentTarget);
+                const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                utterance.volume = 0.8;
+                utterance.lang = 'en-US';
+                speechSynthesis.speak(utterance);
+              }
 
-            // 정답 음성 출력 - 현재 타겟 문자를 읽어줌
-            if ('speechSynthesis' in window) {
-              const wordToSpeak = getEnglishWord(currentTarget);
-              const utterance = new SpeechSynthesisUtterance(wordToSpeak);
-              utterance.rate = 0.8;
-              utterance.pitch = 1;
-              utterance.volume = 0.8;
-              utterance.lang = 'en-US';
-              speechSynthesis.speak(utterance);
-            }
-
-            // Show success animation
-            Swal.fire({
-              title: 'Correct!',
-              text: `+10 points! Combo: ${newStats.combo}`,
-              icon: 'success',
-              timer: 800,
-              showConfirmButton: false,
-              toast: true,
-              position: 'top-end'
-            });
-
-            // Check for combo bonus
-            if (newStats.combo > 1 && newStats.combo % 3 === 0) {
-              setShowComboBonus(true);
-              setTimeout(() => setShowComboBonus(false), 3000);
-            }
-
-            // 콤보 타이머 제거 - 틀렸을 때만 콤보가 리셋되도록 변경
-
-            // Check if game is finished (10 rounds)
-            if (newStats.round > 10) {
               setIsGameActive(false);
               setGameFinished(true);
               
@@ -257,35 +237,66 @@ const TypingGame: React.FC = () => {
                 });
               }, 500);
             } else {
+              // 정답 처리 로직 (일반적인 경우)
+              const newCombo = gameStats.combo + 1;
+              const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
+              
+              const newStats = {
+                ...gameStats,
+                round: gameStats.round + 1,
+                score: gameStats.score + 10,
+                combo: newCombo,
+                maxCombo: newMaxCombo,
+                charactersTyped: gameStats.charactersTyped + 1,
+                correctAnswers: gameStats.correctAnswers + 1,
+                cpm: calculateCPM()
+              };
+
+              setGameStats(newStats);
+
+              // 정답 음성 출력 - 현재 타겟 문자를 읽어줌
+              if ('speechSynthesis' in window) {
+                const wordToSpeak = getEnglishWord(currentTarget);
+                const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                utterance.volume = 0.8;
+                utterance.lang = 'en-US';
+                speechSynthesis.speak(utterance);
+              }
+
+              // Show success animation
+              Swal.fire({
+                title: 'Correct!',
+                text: `+10 points! Combo: ${newStats.combo}`,
+                icon: 'success',
+                timer: 800,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+              });
+
+              // Check for combo bonus
+              if (newStats.combo > 1 && newStats.combo % 3 === 0) {
+                setShowComboBonus(true);
+                setTimeout(() => setShowComboBonus(false), 3000);
+              }
+
               moveToNextTarget();
             }
           } else {
-            // 오답 처리
-            const newStats = {
-              ...gameStats,
-              round: gameStats.round + 1,
-              combo: 0,
-              charactersTyped: gameStats.charactersTyped + 1,
-              cpm: calculateCPM()
-            };
+            // Check if game is finished (10 rounds) BEFORE incrementing round
+            if (gameStats.round >= 10) {
+              // 오답 처리 (라운드는 증가시키지 않음)
+              const newStats = {
+                ...gameStats,
+                combo: 0,
+                charactersTyped: gameStats.charactersTyped + 1,
+                cpm: calculateCPM()
+              };
 
-            setGameStats(newStats);
-
-            // 오답 시 콤보는 즉시 리셋 (타이머 불필요)
-
-            // Show error animation
-            Swal.fire({
-              title: 'Wrong!',
-              text: 'Combo broken!',
-              icon: 'error',
-              timer: 800,
-              showConfirmButton: false,
-              toast: true,
-              position: 'top-end'
-            });
-
-            // Check if game is finished (10 rounds)
-            if (newStats.round > 10) {
+              setGameStats(newStats);
+              
               setIsGameActive(false);
               setGameFinished(true);
               
@@ -314,6 +325,28 @@ const TypingGame: React.FC = () => {
                 });
               }, 500);
             } else {
+              // 오답 처리 (일반적인 경우)
+              const newStats = {
+                ...gameStats,
+                round: gameStats.round + 1,
+                combo: 0,
+                charactersTyped: gameStats.charactersTyped + 1,
+                cpm: calculateCPM()
+              };
+
+              setGameStats(newStats);
+
+              // Show error animation
+              Swal.fire({
+                title: 'Wrong!',
+                text: 'Combo broken!',
+                icon: 'error',
+                timer: 800,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+              });
+
               // 오답이어도 다음 문제로 진행
               moveToNextTarget();
             }
@@ -336,55 +369,35 @@ const TypingGame: React.FC = () => {
     const pressedKey = event.key.toUpperCase();
     
     if (pressedKey === currentTarget) {
-      // Correct answer
-      const newCombo = gameStats.combo + 1;
-      const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
-      
-      const newStats = {
-        ...gameStats,
-        round: gameStats.round + 1,
-        score: gameStats.score + 10,
-        combo: newCombo,
-        maxCombo: newMaxCombo,
-        charactersTyped: gameStats.charactersTyped + 1,
-        correctAnswers: gameStats.correctAnswers + 1,
-        cpm: calculateCPM()
-      };
+      // Check if game is finished (10 rounds) BEFORE incrementing round
+      if (gameStats.round >= 10) {
+        // 정답 처리 (점수만 업데이트, 라운드는 증가시키지 않음)
+        const newCombo = gameStats.combo + 1;
+        const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
+        
+        const newStats = {
+          ...gameStats,
+          score: gameStats.score + 10,
+          combo: newCombo,
+          maxCombo: newMaxCombo,
+          charactersTyped: gameStats.charactersTyped + 1,
+          correctAnswers: gameStats.correctAnswers + 1,
+          cpm: calculateCPM()
+        };
 
-      setGameStats(newStats);
+        setGameStats(newStats);
+        
+        // 정답 음성 출력
+        if ('speechSynthesis' in window) {
+          const wordToSpeak = getEnglishWord(currentTarget);
+          const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          utterance.lang = 'en-US';
+          speechSynthesis.speak(utterance);
+        }
 
-      // 정답 음성 출력 - 현재 타겟 문자를 읽어줌
-      if ('speechSynthesis' in window) {
-        const wordToSpeak = getEnglishWord(currentTarget);
-        const utterance = new SpeechSynthesisUtterance(wordToSpeak);
-        utterance.rate = 0.8;
-        utterance.pitch = 1;
-        utterance.volume = 0.8;
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
-      }
-
-      // Show success animation
-      Swal.fire({
-        title: 'Correct!',
-        text: `+10 points! Combo: ${newStats.combo}`,
-        icon: 'success',
-        timer: 800,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
-
-      // Check for combo bonus
-      if (newStats.combo > 1 && newStats.combo % 3 === 0) {
-        setShowComboBonus(true);
-        setTimeout(() => setShowComboBonus(false), 3000);
-      }
-
-      // 콤보 타이머 제거 - 틀렸을 때만 콤보가 리셋되도록 변경
-
-      // Check if game is finished (10 rounds)
-      if (newStats.round > 10) {
         setIsGameActive(false);
         setGameFinished(true);
         
@@ -413,35 +426,66 @@ const TypingGame: React.FC = () => {
           });
         }, 500);
       } else {
+        // Correct answer (일반적인 경우)
+        const newCombo = gameStats.combo + 1;
+        const newMaxCombo = Math.max(gameStats.maxCombo, newCombo);
+        
+        const newStats = {
+          ...gameStats,
+          round: gameStats.round + 1,
+          score: gameStats.score + 10,
+          combo: newCombo,
+          maxCombo: newMaxCombo,
+          charactersTyped: gameStats.charactersTyped + 1,
+          correctAnswers: gameStats.correctAnswers + 1,
+          cpm: calculateCPM()
+        };
+
+        setGameStats(newStats);
+
+        // 정답 음성 출력 - 현재 타겟 문자를 읽어줌
+        if ('speechSynthesis' in window) {
+          const wordToSpeak = getEnglishWord(currentTarget);
+          const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          utterance.lang = 'en-US';
+          speechSynthesis.speak(utterance);
+        }
+
+        // Show success animation
+        Swal.fire({
+          title: 'Correct!',
+          text: `+10 points! Combo: ${newStats.combo}`,
+          icon: 'success',
+          timer: 800,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+
+        // Check for combo bonus
+        if (newStats.combo > 1 && newStats.combo % 3 === 0) {
+          setShowComboBonus(true);
+          setTimeout(() => setShowComboBonus(false), 3000);
+        }
+
         moveToNextTarget();
       }
     } else {
-      // Wrong answer
-      const newStats = {
-        ...gameStats,
-        round: gameStats.round + 1,
-        combo: 0,
-        charactersTyped: gameStats.charactersTyped + 1,
-        cpm: calculateCPM()
-      };
+      // Check if game is finished (10 rounds) BEFORE incrementing round
+      if (gameStats.round >= 10) {
+        // Wrong answer - 게임 끝 (라운드는 증가시키지 않음)
+        const newStats = {
+          ...gameStats,
+          combo: 0,
+          charactersTyped: gameStats.charactersTyped + 1,
+          cpm: calculateCPM()
+        };
 
-      setGameStats(newStats);
-
-      // 오답 시 콤보는 즉시 리셋 (타이머 불필요)
-
-      // Show error animation
-      Swal.fire({
-        title: 'Wrong!',
-        text: 'Combo broken!',
-        icon: 'error',
-        timer: 800,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
-
-      // Check if game is finished (10 rounds)
-      if (newStats.round > 10) {
+        setGameStats(newStats);
+        
         setIsGameActive(false);
         setGameFinished(true);
         
@@ -470,6 +514,28 @@ const TypingGame: React.FC = () => {
           });
         }, 500);
       } else {
+        // Wrong answer (일반적인 경우)
+        const newStats = {
+          ...gameStats,
+          round: gameStats.round + 1,
+          combo: 0,
+          charactersTyped: gameStats.charactersTyped + 1,
+          cpm: calculateCPM()
+        };
+
+        setGameStats(newStats);
+
+        // Show error animation
+        Swal.fire({
+          title: 'Wrong!',
+          text: 'Combo broken!',
+          icon: 'error',
+          timer: 800,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+
         // 오답이어도 다음 문제로 진행
         moveToNextTarget();
       }
@@ -651,14 +717,44 @@ const TypingGame: React.FC = () => {
 
           {/* Braille Display */}
           <div className="flex justify-center space-x-4 mb-8">
-            {[currentTarget, ...allCharacters.filter(c => c !== currentTarget).slice(0, 5)].map((char, index) => (
+            {/* History - 왼쪽 3개 (완료된 것들) */}
+            {Array.from({ length: 3 }, (_, index) => {
+              const historyChar = gameHistory[2 - index]; // 역순으로 표시
+              return (
+                <div
+                  key={`braille-history-${index}`}
+                  className="w-16 h-20 rounded-2xl border border-black flex items-center justify-center shadow-lg bg-green-200"
+                  style={{ opacity: historyChar ? 0.5 + (index * 0.2) : 0.3 }}
+                >
+                  <span className="text-4xl font-bold text-blue-600">
+                    {historyChar ? (brailleMap[historyChar] || '⠿') : '⠀'}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Current Target - 가운데 */}
+            <div className="w-16 h-20 rounded-2xl border-2 border-blue-600 flex items-center justify-center shadow-lg bg-white">
+              <span className="text-4xl font-bold text-blue-600">{brailleMap[currentTarget] || '⠿'}</span>
+            </div>
+
+            {/* Next - 오른쪽 3개 (다음 것들) */}
+            {upcomingTargets.slice(0, 3).map((char, index) => (
               <div
-                key={`braille-${char}-${index}`}
-                className={`w-16 h-20 rounded-2xl border border-black flex items-center justify-center shadow-lg ${
-                  char === currentTarget ? 'bg-white border-black border-1' : 'bg-green-400'
-                }`}
+                key={`braille-next-${char}-${index}`}
+                className="w-16 h-20 rounded-2xl border border-black flex items-center justify-center shadow-lg bg-gray-300"
+                style={{ opacity: 0.9 - (index * 0.2) }}
               >
                 <span className="text-4xl font-bold text-blue-600">{brailleMap[char] || '⠿'}</span>
+              </div>
+            ))}
+            {/* 부족한 Next 칸들은 빈 칸으로 채우기 */}
+            {Array.from({ length: Math.max(0, 3 - upcomingTargets.length) }, (_, index) => (
+              <div
+                key={`braille-next-empty-${index}`}
+                className="w-16 h-20 rounded-2xl border border-black flex items-center justify-center shadow-lg bg-gray-300 opacity-30"
+              >
+                <span className="text-4xl font-bold text-blue-600">⠀</span>
               </div>
             ))}
           </div>
