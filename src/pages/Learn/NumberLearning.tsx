@@ -3,14 +3,18 @@ import { BRAILLE_NUMBERS, getDotsFromCharacter, generateBraillePattern, parseInp
 import { SectionHeader } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { updateNumberProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
 
 const NumberLearning: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [targetNumbers, setTargetNumbers] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState<number[]>([]);
   const [gameCompleted, setGameCompleted] = useState(false);
+  const [completedNumbers, setCompletedNumbers] = useState<Set<string>>(new Set());
   
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -22,7 +26,41 @@ const NumberLearning: React.FC = () => {
   useEffect(() => {
     // 게임 시작 시 랜덤 숫자 10개 생성 (0-9 중에서)
     generateRandomTargets();
-  }, []);
+    
+    // 사용자의 학습 진행도 로드
+    if (user) {
+      loadUserProgress();
+    }
+  }, [user]);
+
+  const loadUserProgress = async () => {
+    if (!user) {
+      console.log('🔐 No user logged in - skipping progress load');
+      return;
+    }
+    
+    console.log('📊 Loading user progress for:', user.email);
+    
+    try {
+      const progress = await getUserLearningProgress(user);
+      console.log('📈 Progress loaded:', progress);
+      
+      const completed = new Set<string>();
+      
+      // 완료된 숫자들을 Set에 추가
+      Object.entries(progress.numbers).forEach(([number, status]) => {
+        if (status === 1) {
+          completed.add(number);
+          console.log(`✅ Number ${number} is already completed`);
+        }
+      });
+      
+      setCompletedNumbers(completed);
+      console.log('🎯 Total completed numbers:', completed.size);
+    } catch (error) {
+      console.error('❌ Failed to load user progress:', error);
+    }
+  };
 
   const numberCount = 10;
 
@@ -34,14 +72,24 @@ const NumberLearning: React.FC = () => {
     setGameCompleted(false);
   };
 
-  const checkAnswer = useCallback((inputDots: number[]) => {
+  const checkAnswer = useCallback(async (inputDots: number[]) => {
     if (targetNumbers.length === 0 || inputDots.length === 0) return;
     
     const targetNumber = targetNumbers[currentIndex];
     const targetDots = getDotsFromCharacter(targetNumber);
     
+    console.log('🔍 Checking answer:', {
+      targetNumber,
+      inputDots,
+      targetDots,
+      user: user ? user.email : 'not logged in',
+      alreadyCompleted: completedNumbers.has(targetNumber)
+    });
+    
     if (targetDots && JSON.stringify(inputDots.sort()) === JSON.stringify(targetDots.sort())) {
-      // 숫자를 영어 단어로 변환해서 발음
+      console.log('✅ Correct answer!');
+      
+      // 숫자를 영어 단어로 변환해서 발음 - 개선된 버전
       const numberWords: { [key: string]: string } = {
         '0': 'zero',
         '1': 'one',
@@ -56,12 +104,59 @@ const NumberLearning: React.FC = () => {
       };
       
       const wordToSpeak = numberWords[targetNumber] || targetNumber;
-      const utterance = new SpeechSynthesisUtterance(wordToSpeak);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.volume = 0.8;
-      utterance.lang = 'en-US';
-      speechSynthesis.speak(utterance);
+      
+      try {
+        // speechSynthesis가 사용 가능한지 확인
+        if ('speechSynthesis' in window) {
+          // 기존 음성 중단
+          speechSynthesis.cancel();
+          
+          // 약간의 딜레이 후 실행 (브라우저 정책 대응)
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
+            utterance.volume = 1.0; // 볼륨 최대
+            utterance.lang = 'en-US';
+            
+            // 이벤트 리스너 추가 (디버깅용)
+            utterance.onstart = () => {
+              console.log(`🔊 TTS started: ${wordToSpeak}`);
+            };
+            utterance.onend = () => {
+              console.log(`✅ TTS finished: ${wordToSpeak}`);
+            };
+            utterance.onerror = (event) => {
+              console.error('❌ TTS error:', event);
+            };
+            
+            console.log(`🎵 Attempting to speak: "${wordToSpeak}"`);
+            console.log('Available voices:', speechSynthesis.getVoices().length);
+            
+            speechSynthesis.speak(utterance);
+          }, 100);
+        } else {
+          console.error('❌ speechSynthesis not supported in this browser');
+        }
+      } catch (error) {
+        console.error('❌ TTS error:', error);
+      }
+      
+      // 학습 진행도 저장 (로그인한 사용자만)
+      if (user && !completedNumbers.has(targetNumber)) {
+        console.log('💾 Attempting to save progress to Firestore...');
+        try {
+          await updateNumberProgress(user, targetNumber);
+          setCompletedNumbers(prev => new Set([...prev, targetNumber]));
+          console.log(`🎉 Number ${targetNumber} progress saved to database successfully!`);
+        } catch (error) {
+          console.error('❌ Failed to save number progress:', error);
+        }
+      } else if (!user) {
+        console.log('⚠️ User not logged in - skipping database save');
+      } else if (completedNumbers.has(targetNumber)) {
+        console.log(`ℹ️ Number ${targetNumber} already completed - skipping save`);
+      }
       
       Swal.fire({
         toast: true,
@@ -103,7 +198,7 @@ const NumberLearning: React.FC = () => {
         }, 1000);
       }
     }
-  }, [targetNumbers, currentIndex, navigate]);
+  }, [targetNumbers, currentIndex, user, completedNumbers]);
 
   // 시리얼 디바이스 데이터 수신 처리
   useEffect(() => {
@@ -164,6 +259,40 @@ const NumberLearning: React.FC = () => {
           <SectionHeader title="Number Learning (0–9)" />
           <p className="text-gray-600 mb-6">Different languages around the world have their own mappings for the numbers to braille dots. Here are the "dot combinations" for English Braille numbers.</p>
           
+          {/* Login Status */}
+          {!user && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-yellow-800 text-sm">
+                📚 Sign in to save your learning progress!
+              </p>
+            </div>
+          )}
+          
+          {/* Debug Section - 개발 중에만 사용 */}
+          {user && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-blue-800 text-sm mb-2">
+                🐛 Debug: Logged in as {user.email}
+              </p>
+              <button
+                onClick={async () => {
+                  console.log('🧪 Manual test: Trying to save number 5');
+                  try {
+                    await updateNumberProgress(user, '5');
+                    console.log('✅ Manual test successful!');
+                    alert('Test successful! Check console and Firebase.');
+                  } catch (error) {
+                    console.error('❌ Manual test failed:', error);
+                    alert('Test failed! Check console for details.');
+                  }
+                }}
+                className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
+              >
+                Test Firebase Save
+              </button>
+            </div>
+          )}
+          
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
             <div 
@@ -173,6 +302,11 @@ const NumberLearning: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600">
             Progress: {currentIndex + 1} of {targetNumbers.length}
+            {user && completedNumbers.size > 0 && (
+              <span className="ml-4 text-yellow-600">
+                • {completedNumbers.size}/10 numbers learned overall
+              </span>
+            )}
           </div>
         </div>
 
@@ -279,6 +413,29 @@ const NumberLearning: React.FC = () => {
           <div className="text-center mb-4 text-lg font-semibold text-gray-700">
             Number Reference (0-9)
           </div>
+          
+          {/* Legend */}
+          <div className="flex justify-center space-x-6 mb-4 text-xs">
+            <div className="flex items-center space-x-1">
+              <div className="w-4 h-4 bg-blue-100 border border-blue-500 rounded"></div>
+              <span>Current</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-4 h-4 bg-green-100 border border-green-500 rounded"></div>
+              <span>Session Complete</span>
+            </div>
+            {user && (
+              <div className="flex items-center space-x-1">
+                <div className="w-4 h-4 bg-yellow-100 border border-yellow-500 rounded"></div>
+                <span>Learned ✓</span>
+              </div>
+            )}
+            <div className="flex items-center space-x-1">
+              <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
+              <span>Not Started</span>
+            </div>
+          </div>
+          
           <div className="flex flex-wrap justify-center gap-2">
             {[
               { num: '1', braille: '⠁' },
@@ -294,6 +451,7 @@ const NumberLearning: React.FC = () => {
             ].map((item, index) => {
               const isCompleted = targetNumbers.slice(0, currentIndex).includes(item.num);
               const isCurrent = targetNumbers[currentIndex] === item.num;
+              const isLearned = completedNumbers.has(item.num); // 데이터베이스에서 완료된 숫자
 
               return (
                 <div
@@ -303,13 +461,18 @@ const NumberLearning: React.FC = () => {
                       ? 'bg-blue-100 border-blue-500 scale-105'
                       : isCompleted
                         ? 'bg-green-100 border-green-500'
-                        : index % 2 === 0 
-                          ? 'bg-white border-gray-200 hover:bg-gray-100'
-                          : 'bg-gray-100 border-gray-300 hover:bg-gray-200'
+                        : isLearned
+                          ? 'bg-yellow-100 border-yellow-500'
+                          : index % 2 === 0 
+                            ? 'bg-white border-gray-200 hover:bg-gray-100'
+                            : 'bg-gray-100 border-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   <div className="text-2xl font-mono text-blue-600 mb-1">{item.braille}</div>
-                  <div className="font-bold text-lg text-gray-800">{item.num}</div>
+                  <div className="font-bold text-lg text-gray-800">
+                    {item.num}
+                    {isLearned && <span className="text-yellow-600 ml-1">✓</span>}
+                  </div>
                 </div>
               );
             })}

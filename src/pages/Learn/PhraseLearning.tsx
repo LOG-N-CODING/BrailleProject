@@ -3,6 +3,8 @@ import { BRAILLE_ALPHABET, generateBraillePattern, parseInputBits, findCharacter
 import { SectionHeader } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { updatePhraseProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
 
 // Phrases data based on Phrases.md
@@ -27,11 +29,13 @@ const phrasesData = {
 
 const PhraseLearning: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [targetPhrases, setTargetPhrases] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState<string>('');
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [completedPhrases, setCompletedPhrases] = useState<{ [category: string]: Set<string> }>({});
   
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -41,10 +45,50 @@ const PhraseLearning: React.FC = () => {
   const categories = Object.keys(phrasesData);
 
   useEffect(() => {
+    // 사용자의 학습 진행도 로드
+    if (user) {
+      loadUserProgress();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (selectedCategory) {
       generateRandomTargets();
     }
   }, [selectedCategory]);
+
+  const loadUserProgress = async () => {
+    if (!user) {
+      console.log('🔐 No user logged in - skipping progress load');
+      return;
+    }
+    
+    console.log('📊 Loading user progress for:', user.email);
+    
+    try {
+      const progress = await getUserLearningProgress(user);
+      console.log('📈 Progress loaded:', progress);
+      
+      const completed: { [category: string]: Set<string> } = {};
+      
+      // 완료된 구문들을 카테고리별로 Set에 추가
+      Object.entries(progress.phrases).forEach(([category, phrases]) => {
+        completed[category] = new Set<string>();
+        Object.entries(phrases as { [phrase: string]: number }).forEach(([phrase, status]) => {
+          if (status === 1) {
+            completed[category].add(phrase);
+            console.log(`✅ Phrase "${phrase}" in ${category} is already completed`);
+          }
+        });
+      });
+      
+      setCompletedPhrases(completed);
+      console.log('🎯 Total completed phrases by category:', 
+        Object.entries(completed).map(([cat, phrases]) => `${cat}: ${phrases.size}`).join(', '));
+    } catch (error) {
+      console.error('❌ Failed to load user progress:', error);
+    }
+  };
 
 
   const phraseCount = 3; // 구문 개수
@@ -60,19 +104,82 @@ const PhraseLearning: React.FC = () => {
     setGameCompleted(false);
   };
 
-  const checkAnswer = (inputToCheck?: string) => {
+  const checkAnswer = async (inputToCheck?: string) => {
     const currentInput = inputToCheck || userInput;
     if (targetPhrases.length === 0 || currentInput.trim().length === 0) return;
     
     const targetPhrase = targetPhrases[currentIndex];
     
+    console.log('🔍 Checking phrase answer:', {
+      targetPhrase,
+      currentInput: currentInput.toLowerCase().trim(),
+      user: user ? user.email : 'not logged in',
+      selectedCategory,
+      alreadyCompleted: completedPhrases[selectedCategory]?.has(targetPhrase)
+    });
+    
     if (currentInput.toLowerCase().trim() === targetPhrase.toLowerCase()) {
-      // 구문 발음
-      const utterance = new SpeechSynthesisUtterance(targetPhrase);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.lang = 'en-US';
-      speechSynthesis.speak(utterance);
+      console.log('✅ Correct phrase answer!');
+      
+      // 구문 발음 - 개선된 버전
+      try {
+        // speechSynthesis가 사용 가능한지 확인
+        if ('speechSynthesis' in window) {
+          // 기존 음성 중단
+          speechSynthesis.cancel();
+          
+          // 약간의 딜레이 후 실행 (브라우저 정책 대응)
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(targetPhrase);
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
+            utterance.volume = 1.0; // 볼륨 최대
+            utterance.lang = 'en-US';
+            
+            // 이벤트 리스너 추가 (디버깅용)
+            utterance.onstart = () => {
+              console.log(`🔊 TTS started: ${targetPhrase}`);
+            };
+            utterance.onend = () => {
+              console.log(`✅ TTS finished: ${targetPhrase}`);
+            };
+            utterance.onerror = (event) => {
+              console.error('❌ TTS error:', event);
+            };
+            
+            console.log(`🎵 Attempting to speak: "${targetPhrase}"`);
+            console.log('Available voices:', speechSynthesis.getVoices().length);
+            
+            speechSynthesis.speak(utterance);
+          }, 100);
+        } else {
+          console.error('❌ speechSynthesis not supported in this browser');
+        }
+      } catch (error) {
+        console.error('❌ TTS error:', error);
+      }
+      
+      // 학습 진행도 저장 (로그인한 사용자만)
+      if (user && !completedPhrases[selectedCategory]?.has(targetPhrase)) {
+        console.log('💾 Attempting to save phrase progress to Firestore...');
+        try {
+          await updatePhraseProgress(user, selectedCategory, targetPhrase);
+          
+          // 로컬 상태 업데이트
+          setCompletedPhrases(prev => ({
+            ...prev,
+            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetPhrase])
+          }));
+          
+          console.log(`🎉 Phrase "${targetPhrase}" in category "${selectedCategory}" progress saved to database successfully!`);
+        } catch (error) {
+          console.error('❌ Failed to save phrase progress:', error);
+        }
+      } else if (!user) {
+        console.log('⚠️ User not logged in - skipping database save');
+      } else if (completedPhrases[selectedCategory]?.has(targetPhrase)) {
+        console.log(`ℹ️ Phrase "${targetPhrase}" already completed - skipping save`);
+      }
       
       Swal.fire({
         toast: true,
@@ -93,7 +200,7 @@ const PhraseLearning: React.FC = () => {
             Swal.fire({
               icon: 'success',
               title: 'Completed!',
-              text: `All letters completed!`,
+              text: `All phrases completed!`,
               confirmButtonText: 'Practice Again',
               cancelButtonText: 'Back to Learning Menu',
               showCancelButton: true,
@@ -202,24 +309,68 @@ const PhraseLearning: React.FC = () => {
           <div className="max-w-3xl mx-auto text-center my-8">
             <SectionHeader title="Phrases - Choose Category" />
             <p className="text-gray-600 mb-6">Select a category to start the phrases learning</p>
+            
+            {/* Login Status */}
+            {!user && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-yellow-800 text-sm">
+                  📚 Sign in to save your learning progress!
+                </p>
+              </div>
+            )}
+            
+            {/* Debug Section - 개발 중에만 사용 */}
+            {user && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-blue-800 text-sm mb-2">
+                  🐛 Debug: Logged in as {user.email}
+                </p>
+                <button
+                  onClick={async () => {
+                    console.log('🧪 Manual test: Trying to save phrase "good morning" in "Greetings"');
+                    try {
+                      await updatePhraseProgress(user, 'Greetings', 'good morning');
+                      console.log('✅ Manual test successful!');
+                      alert('Test successful! Check console and Firebase.');
+                    } catch (error) {
+                      console.error('❌ Manual test failed:', error);
+                      alert('Test failed! Check console for details.');
+                    }
+                  }}
+                  className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
+                >
+                  Test Firebase Save
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {categories.map((category) => (
-              <div
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
-                <p className="text-gray-600">
-                  {phrasesData[category as keyof typeof phrasesData].length} phrases available
-                </p>
-                <div className="mt-4 text-sm text-gray-500">
-                  Click to start learning with {category.toLowerCase()} phrases
+            {categories.map((category) => {
+              const totalPhrases = phrasesData[category as keyof typeof phrasesData].length;
+              const completedCount = completedPhrases[category]?.size || 0;
+              
+              return (
+                <div
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
+                  <p className="text-gray-600">
+                    {totalPhrases} phrases available
+                  </p>
+                  {user && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ {completedCount}/{totalPhrases} completed
+                    </p>
+                  )}
+                  <div className="mt-4 text-sm text-gray-500">
+                    Click to start learning with {category.toLowerCase()} phrases
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           <div className="my-10 flex justify-center">
@@ -245,6 +396,15 @@ const PhraseLearning: React.FC = () => {
           <SectionHeader title={`Phrases - ${selectedCategory}`} />
           <p className="text-gray-600 mb-6">Type the phrase using braille patterns - phrases are automatically checked when complete</p>
           
+          {/* Login Status */}
+          {!user && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-yellow-800 text-sm">
+                📚 Sign in to save your learning progress!
+              </p>
+            </div>
+          )}
+          
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
             <div 
@@ -254,6 +414,11 @@ const PhraseLearning: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600">
             Progress: {currentIndex + 1} of {targetPhrases.length}
+            {user && completedPhrases[selectedCategory] && (
+              <span className="ml-4 text-green-600">
+                • {completedPhrases[selectedCategory].size}/{phrasesData[selectedCategory as keyof typeof phrasesData].length} phrases learned in this category
+              </span>
+            )}
           </div>
         </div>
 
