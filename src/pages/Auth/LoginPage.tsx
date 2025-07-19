@@ -55,7 +55,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Login Form */}
-          <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+          <div className="w-full max-w-sm sm:max-w-sm md:max-w-md lg:max-w-lg">
             <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200 p-6 sm:p-8 lg:p-10">
               {/* Logo */}
               <div className="flex justify-center mb-6 sm:mb-8">

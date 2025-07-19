@@ -15,7 +15,7 @@ const quizCards: QuizCard[] = [
   {
     id: 'image-to-braille',
     title: 'Image to Braille',
-    description: '이미지를 보고 단어를 맞춰 점자로 입력하는 퀴즈',
+    description: 'Quiz where you look at images and input the correct words in Braille',
     icon: '🖼️',
     route: '/quiz/image-to-braille',
     color: 'from-blue-400 to-blue-600'
@@ -23,19 +23,11 @@ const quizCards: QuizCard[] = [
   {
     id: 'math-quiz',
     title: 'Math Quiz',
-    description: '수학 문제를 점자로 풀어보는 퀴즈',
+    description: 'Quiz where you solve math problems using Braille',
     icon: '🧮',
     route: '/quiz/math',
     color: 'from-green-400 to-green-600'
   },
-  {
-    id: 'word-challenge',
-    title: 'Word Challenge',
-    description: '단어 철자를 점자로 맞추는 도전 (준비중)',
-    icon: '📝',
-    route: '/quiz/word-challenge',
-    color: 'from-purple-400 to-purple-600'
-  }
 ];
 
 const QuizIndex: React.FC = () => {
@@ -60,12 +52,12 @@ const QuizIndex: React.FC = () => {
             Quiz Zone
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            다양한 퀴즈를 통해 점자 실력을 테스트해보세요!
+            Test your Braille skills through various quizzes!
           </p>
         </motion.div>
 
         {/* 퀴즈 카드들 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {quizCards.map((card, index) => {
             const isAvailable = card.id === 'image-to-braille' || card.id === 'math-quiz';
             
@@ -100,7 +92,7 @@ const QuizIndex: React.FC = () => {
                         ? 'bg-white bg-opacity-20 text-white' 
                         : 'bg-gray-500 bg-opacity-50 text-gray-200'
                     }`}>
-                      {isAvailable ? '이용 가능' : '준비중'}
+                      {isAvailable ? 'Available' : 'Coming Soon'}
                     </span>
                     
                     {isAvailable && (
@@ -136,24 +128,24 @@ const QuizIndex: React.FC = () => {
         >
           <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
             <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              퀴즈 이용 방법
+              How to Use Quizzes
             </h3>
             <div className="text-left space-y-3 text-gray-600">
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">1.</span>
-                <span>원하는 퀴즈 카드를 클릭하여 시작하세요</span>
+                <span>Click on your desired quiz card to start</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">2.</span>
-                <span>점자 입력 장치를 연결하거나 화면 키보드를 사용하세요</span>
+                <span>Connect your Braille input device or use the on-screen keyboard</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">3.</span>
-                <span>문제를 풀고 점수를 확인해보세요</span>
+                <span>Solve problems and check your score</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">4.</span>
-                <span>반복 학습을 통해 점자 실력을 향상시키세요</span>
+                <span>Improve your Braille skills through repeated practice</span>
               </div>
             </div>
           </div>
