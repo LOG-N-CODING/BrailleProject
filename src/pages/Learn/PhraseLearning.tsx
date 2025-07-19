@@ -1,31 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { BRAILLE_ALPHABET, generateBraillePattern, parseInputBits, findCharacterFromDots, getDotsFromCharacter } from '../../utils/braille';
+import {
+  BRAILLE_ALPHABET,
+  generateBraillePattern,
+  parseInputBits,
+  findCharacterFromDots,
+  getDotsFromCharacter,
+} from '../../utils/braille';
 import { SectionHeader } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { updatePhraseProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
-
-// Phrases data based on Phrases.md
-const phrasesData = {
-  'Greetings': [
-    'good morning', 'good afternoon', 'good evening', 'good night', 'hello there',
-    'how are you', 'nice to meet you', 'see you later', 'have a nice day', 'take care'
-  ],
-  'Daily Conversation': [
-    'excuse me', 'thank you', 'you are welcome', 'i am sorry', 'no problem',
-    'what time is it', 'where is the bathroom', 'can you help me', 'i need help', 'how much is this'
-  ],
-  'School Life': [
-    'what is your name', 'how old are you', 'where do you live', 'what grade are you in', 'do you like school',
-    'what is your favorite subject', 'can i borrow your pencil', 'when is the test', 'homework is hard', 'lunch time'
-  ],
-  'Food & Restaurant': [
-    'i am hungry', 'i am thirsty', 'what would you like', 'can i have the menu', 'i would like to order',
-    'the food is delicious', 'can i have the check', 'table for two please', 'i am allergic to nuts', 'water please'
-  ]
-};
+import { query, collection, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const PhraseLearning: React.FC = () => {
   const navigate = useNavigate();
@@ -36,13 +24,42 @@ const PhraseLearning: React.FC = () => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [completedPhrases, setCompletedPhrases] = useState<{ [category: string]: Set<string> }>({});
-  
+
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [showBrailleKeyboard, setShowBrailleKeyboard] = useState(false);
 
+  const [phrasesData, setPhrasesData] = useState<Record<string, string[]>>({});
   const categories = Object.keys(phrasesData);
+
+  useEffect(() => {
+    const fetchPhrases = async () => {
+      try {
+        // 'phrases' 콜렉션 전체 문서 조회, category 오름차순 정렬
+        const q = query(collection(db, 'phrases'), orderBy('category'));
+        const snap = await getDocs(q);
+
+        const grouped: Record<string, string[]> = {};
+        snap.docs.forEach(docSnap => {
+          const { category, content } = docSnap.data() as {
+            category: string;
+            content: string;
+            createdAt: any;
+          };
+          if (!grouped[category]) grouped[category] = [];
+          grouped[category].push(content);
+        });
+
+        console.log('📚 Loaded phrases data:', grouped);
+
+        setPhrasesData(grouped);
+      } catch (err) {
+        console.error('❌ phrases 불러오기 실패:', err);
+      }
+    };
+    fetchPhrases();
+  }, []);
 
   useEffect(() => {
     // 사용자의 학습 진행도 로드
@@ -62,15 +79,15 @@ const PhraseLearning: React.FC = () => {
       console.log('🔐 No user logged in - skipping progress load');
       return;
     }
-    
+
     console.log('📊 Loading user progress for:', user.email);
-    
+
     try {
       const progress = await getUserLearningProgress(user);
       console.log('📈 Progress loaded:', progress);
-      
+
       const completed: { [category: string]: Set<string> } = {};
-      
+
       // 완료된 구문들을 카테고리별로 Set에 추가
       Object.entries(progress.phrases).forEach(([category, phrases]) => {
         completed[category] = new Set<string>();
@@ -81,21 +98,24 @@ const PhraseLearning: React.FC = () => {
           }
         });
       });
-      
+
       setCompletedPhrases(completed);
-      console.log('🎯 Total completed phrases by category:', 
-        Object.entries(completed).map(([cat, phrases]) => `${cat}: ${phrases.size}`).join(', '));
+      console.log(
+        '🎯 Total completed phrases by category:',
+        Object.entries(completed)
+          .map(([cat, phrases]) => `${cat}: ${phrases.size}`)
+          .join(', ')
+      );
     } catch (error) {
       console.error('❌ Failed to load user progress:', error);
     }
   };
 
-
   const phraseCount = 3; // 구문 개수
 
   const generateRandomTargets = () => {
     if (!selectedCategory) return;
-    
+
     const categoryPhrases = phrasesData[selectedCategory as keyof typeof phrasesData];
     const shuffled = [...categoryPhrases].sort(() => Math.random() - 0.5);
     setTargetPhrases(shuffled.slice(0, phraseCount)); // phrases per game
@@ -107,27 +127,27 @@ const PhraseLearning: React.FC = () => {
   const checkAnswer = async (inputToCheck?: string) => {
     const currentInput = inputToCheck || userInput;
     if (targetPhrases.length === 0 || currentInput.trim().length === 0) return;
-    
+
     const targetPhrase = targetPhrases[currentIndex];
-    
+
     console.log('🔍 Checking phrase answer:', {
       targetPhrase,
       currentInput: currentInput.toLowerCase().trim(),
       user: user ? user.email : 'not logged in',
       selectedCategory,
-      alreadyCompleted: completedPhrases[selectedCategory]?.has(targetPhrase)
+      alreadyCompleted: completedPhrases[selectedCategory]?.has(targetPhrase),
     });
-    
+
     if (currentInput.toLowerCase().trim() === targetPhrase.toLowerCase()) {
       console.log('✅ Correct phrase answer!');
-      
+
       // 구문 발음 - 개선된 버전
       try {
         // speechSynthesis가 사용 가능한지 확인
         if ('speechSynthesis' in window) {
           // 기존 음성 중단
           speechSynthesis.cancel();
-          
+
           // 약간의 딜레이 후 실행 (브라우저 정책 대응)
           setTimeout(() => {
             const utterance = new SpeechSynthesisUtterance(targetPhrase);
@@ -135,7 +155,7 @@ const PhraseLearning: React.FC = () => {
             utterance.pitch = 1;
             utterance.volume = 1.0; // 볼륨 최대
             utterance.lang = 'en-US';
-            
+
             // 이벤트 리스너 추가 (디버깅용)
             utterance.onstart = () => {
               console.log(`🔊 TTS started: ${targetPhrase}`);
@@ -143,13 +163,13 @@ const PhraseLearning: React.FC = () => {
             utterance.onend = () => {
               console.log(`✅ TTS finished: ${targetPhrase}`);
             };
-            utterance.onerror = (event) => {
+            utterance.onerror = event => {
               console.error('❌ TTS error:', event);
             };
-            
+
             console.log(`🎵 Attempting to speak: "${targetPhrase}"`);
             console.log('Available voices:', speechSynthesis.getVoices().length);
-            
+
             speechSynthesis.speak(utterance);
           }, 100);
         } else {
@@ -158,20 +178,22 @@ const PhraseLearning: React.FC = () => {
       } catch (error) {
         console.error('❌ TTS error:', error);
       }
-      
+
       // 학습 진행도 저장 (로그인한 사용자만)
       if (user && !completedPhrases[selectedCategory]?.has(targetPhrase)) {
         console.log('💾 Attempting to save phrase progress to Firestore...');
         try {
           await updatePhraseProgress(user, selectedCategory, targetPhrase);
-          
+
           // 로컬 상태 업데이트
           setCompletedPhrases(prev => ({
             ...prev,
-            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetPhrase])
+            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetPhrase]),
           }));
-          
-          console.log(`🎉 Phrase "${targetPhrase}" in category "${selectedCategory}" progress saved to database successfully!`);
+
+          console.log(
+            `🎉 Phrase "${targetPhrase}" in category "${selectedCategory}" progress saved to database successfully!`
+          );
         } catch (error) {
           console.error('❌ Failed to save phrase progress:', error);
         }
@@ -180,7 +202,7 @@ const PhraseLearning: React.FC = () => {
       } else if (completedPhrases[selectedCategory]?.has(targetPhrase)) {
         console.log(`ℹ️ Phrase "${targetPhrase}" already completed - skipping save`);
       }
-      
+
       Swal.fire({
         toast: true,
         position: 'top-end',
@@ -204,12 +226,12 @@ const PhraseLearning: React.FC = () => {
               confirmButtonText: 'Practice Again',
               cancelButtonText: 'Back to Learning Menu',
               showCancelButton: true,
-              allowOutsideClick: true
-            }).then((result) => {
+              allowOutsideClick: true,
+            }).then(result => {
               if (result.isConfirmed) {
-              generateRandomTargets();
+                generateRandomTargets();
               } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-              navigate('/learn');
+                navigate('/learn');
               }
             });
           }, 1500);
@@ -228,7 +250,7 @@ const PhraseLearning: React.FC = () => {
     if (isConnected) {
       const handleData = (data: number) => {
         const bits = parseInputBits(data);
-        
+
         if (bits.includes(-1)) {
           handleBackspace();
         } else if (bits.includes(-2)) {
@@ -236,18 +258,18 @@ const PhraseLearning: React.FC = () => {
           handleSpaceInput();
         } else if (bits.length > 0) {
           setActiveDots(bits);
-          
+
           const character = findCharacterFromDots(bits);
           if (character && character.match(/[A-Z]/)) {
             const newInput = userInput + character.toLowerCase();
             setUserInput(newInput);
-            
+
             // 자동으로 답 체크
             setTimeout(() => {
               checkAnswer(newInput);
             }, 300);
           }
-          
+
           setTimeout(() => {
             setActiveDots([]);
           }, 500);
@@ -259,22 +281,22 @@ const PhraseLearning: React.FC = () => {
   }, [isConnected, userInput, targetPhrases, currentIndex]);
 
   const handleBrailleKeyClick = (dot: number) => {
-    const newActiveDots = activeDots.includes(dot) 
-      ? activeDots.filter(d => d !== dot) 
+    const newActiveDots = activeDots.includes(dot)
+      ? activeDots.filter(d => d !== dot)
       : [...activeDots, dot];
-    
+
     setActiveDots(newActiveDots);
     // 자동 입력 제거 - Input 버튼을 눌러야 입력됨
   };
 
   const handleCharacterInput = () => {
     if (activeDots.length === 0) return;
-    
+
     const character = findCharacterFromDots(activeDots);
     if (character && character.match(/[A-Z]/)) {
       const newInput = userInput + character.toLowerCase();
       setUserInput(newInput);
-      
+
       // Input 버튼을 눌렀을 때 답 체크
       setTimeout(() => {
         checkAnswer(newInput);
@@ -286,7 +308,7 @@ const PhraseLearning: React.FC = () => {
   const handleSpaceInput = () => {
     const newInput = userInput + ' ';
     setUserInput(newInput);
-    
+
     // 자동으로 답 체크
     setTimeout(() => {
       checkAnswer(newInput);
@@ -309,7 +331,7 @@ const PhraseLearning: React.FC = () => {
           <div className="max-w-3xl mx-auto text-center my-8">
             <SectionHeader title="Phrases - Choose Category" />
             <p className="text-gray-600 mb-6">Select a category to start the phrases learning</p>
-            
+
             {/* Login Status */}
             {!user && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -318,16 +340,16 @@ const PhraseLearning: React.FC = () => {
                 </p>
               </div>
             )}
-            
+
             {/* Debug Section - 개발 중에만 사용 */}
             {user && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-blue-800 text-sm mb-2">
-                  🐛 Debug: Logged in as {user.email}
-                </p>
+                <p className="text-blue-800 text-sm mb-2">🐛 Debug: Logged in as {user.email}</p>
                 <button
                   onClick={async () => {
-                    console.log('🧪 Manual test: Trying to save phrase "good morning" in "Greetings"');
+                    console.log(
+                      '🧪 Manual test: Trying to save phrase "good morning" in "Greetings"'
+                    );
                     try {
                       await updatePhraseProgress(user, 'Greetings', 'good morning');
                       console.log('✅ Manual test successful!');
@@ -346,10 +368,10 @@ const PhraseLearning: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {categories.map((category) => {
+            {categories.map(category => {
               const totalPhrases = phrasesData[category as keyof typeof phrasesData].length;
               const completedCount = completedPhrases[category]?.size || 0;
-              
+
               return (
                 <div
                   key={category}
@@ -357,9 +379,7 @@ const PhraseLearning: React.FC = () => {
                   className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
                 >
                   <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
-                  <p className="text-gray-600">
-                    {totalPhrases} phrases available
-                  </p>
+                  <p className="text-gray-600">{totalPhrases} phrases available</p>
                   {user && (
                     <p className="text-sm text-green-600 mt-2">
                       ✓ {completedCount}/{totalPhrases} completed
@@ -372,7 +392,7 @@ const PhraseLearning: React.FC = () => {
               );
             })}
           </div>
-          
+
           <div className="my-10 flex justify-center">
             <button
               onClick={() => navigate('/learn/alphabet-mode')}
@@ -381,7 +401,6 @@ const PhraseLearning: React.FC = () => {
               ← Back to Modes
             </button>
           </div>
-
         </div>
       </div>
     );
@@ -392,22 +411,21 @@ const PhraseLearning: React.FC = () => {
       <div className="mx-auto">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center my-8">
-          
           <SectionHeader title={`Phrases - ${selectedCategory}`} />
-          <p className="text-gray-600 mb-6">Type the phrase using braille patterns - phrases are automatically checked when complete</p>
-          
+          <p className="text-gray-600 mb-6">
+            Type the phrase using braille patterns - phrases are automatically checked when complete
+          </p>
+
           {/* Login Status */}
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">
-                📚 Sign in to save your learning progress!
-              </p>
+              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
             </div>
           )}
-          
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-            <div 
+            <div
               className="bg-gradient-to-r from-green-500 to-teal-600 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             ></div>
@@ -416,7 +434,9 @@ const PhraseLearning: React.FC = () => {
             Progress: {currentIndex + 1} of {targetPhrases.length}
             {user && completedPhrases[selectedCategory] && (
               <span className="ml-4 text-green-600">
-                • {completedPhrases[selectedCategory].size}/{phrasesData[selectedCategory as keyof typeof phrasesData].length} phrases learned in this category
+                • {completedPhrases[selectedCategory].size}/
+                {phrasesData[selectedCategory as keyof typeof phrasesData].length} phrases learned
+                in this category
               </span>
             )}
           </div>
@@ -424,23 +444,21 @@ const PhraseLearning: React.FC = () => {
 
         {/* Phrases Progress */}
         <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-lg p-6 mb-6">
-          <div className="text-center mb-4 text-lg font-semibold text-gray-700">
-            Progress
-          </div>
+          <div className="text-center mb-4 text-lg font-semibold text-gray-700">Progress</div>
           <div className="flex justify-center space-x-2 flex-wrap">
             {targetPhrases.map((phrase, index) => {
               const isCompleted = index < currentIndex;
               const isCurrent = index === currentIndex;
-              
+
               return (
                 <div
                   key={index}
                   className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all mb-2 ${
-                    isCurrent 
-                      ? 'bg-green-100 border-2 border-green-500 text-green-700' 
-                      : isCompleted 
-                        ? 'bg-teal-100 border-2 border-teal-500 text-teal-700' 
-                        : 'bg-gray-100 border-2 border-gray-300 text-gray-500'
+                    isCurrent
+                      ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                      : isCompleted
+                      ? 'bg-teal-100 border-2 border-teal-500 text-teal-700'
+                      : 'bg-gray-100 border-2 border-gray-300 text-gray-500'
                   }`}
                 >
                   {phrase}
@@ -484,7 +502,7 @@ const PhraseLearning: React.FC = () => {
                       onClick={() => handleBrailleKeyClick(dot)}
                       className={`w-12 h-12 rounded-full border-2 font-bold text-lg transition-all ${
                         activeDots.includes(dot)
-                          ? 'bg-green-500 text-white border-green-500 scale-110' 
+                          ? 'bg-green-500 text-white border-green-500 scale-110'
                           : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
                       }`}
                     >
@@ -501,7 +519,7 @@ const PhraseLearning: React.FC = () => {
                       onClick={() => handleBrailleKeyClick(dot)}
                       className={`w-12 h-12 rounded-full border-2 font-bold text-lg transition-all ${
                         activeDots.includes(dot)
-                          ? 'bg-green-500 text-white border-green-500 scale-110' 
+                          ? 'bg-green-500 text-white border-green-500 scale-110'
                           : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
                       }`}
                     >
@@ -521,13 +539,13 @@ const PhraseLearning: React.FC = () => {
                         : 'bg-blue-500 text-white hover:bg-blue-600'
                     }`}
                   >
-                    <span className='material-icons'>input</span>
+                    <span className="material-icons">input</span>
                   </button>
                   <button
                     onClick={handleSpaceInput}
                     className="flex items-center justify-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   >
-                    <span className='material-icons'>space_bar</span>
+                    <span className="material-icons">space_bar</span>
                   </button>
                   <button
                     onClick={handleBackspace}
@@ -538,7 +556,7 @@ const PhraseLearning: React.FC = () => {
                         : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
                   >
-                    <span className='material-icons'>backspace</span>
+                    <span className="material-icons">backspace</span>
                   </button>
                 </div>
               </div>
@@ -550,9 +568,7 @@ const PhraseLearning: React.FC = () => {
         <button
           onClick={() => setShowBrailleKeyboard(!showBrailleKeyboard)}
           className={`fixed left-4 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full shadow-2xl transition-all duration-300 z-50 ${
-            showBrailleKeyboard 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-green-500 hover:bg-green-600'
+            showBrailleKeyboard ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           } text-white font-bold text-xs flex flex-col items-center justify-center`}
         >
           <div className="text-lg">⠿</div>
@@ -568,7 +584,7 @@ const PhraseLearning: React.FC = () => {
             {Object.keys(BRAILLE_ALPHABET).map((letter, index) => {
               const dots = getDotsFromCharacter(letter);
               const braillePattern = dots ? generateBraillePattern(dots) : '';
-              
+
               return (
                 <div
                   key={letter}
@@ -581,8 +597,6 @@ const PhraseLearning: React.FC = () => {
             })}
           </div>
         </div>
-
-        
 
         {/* Finish Button */}
         {gameCompleted && (
@@ -609,11 +623,11 @@ const PhraseLearning: React.FC = () => {
 
         <div className="max-w-3xl mx-auto text-center my-6">
           <button
-              onClick={() => setSelectedCategory('')}
-              className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              ← Back to Categories
-            </button>
+            onClick={() => setSelectedCategory('')}
+            className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            ← Back to Categories
+          </button>
         </div>
       </div>
     </div>
