@@ -69,6 +69,67 @@ const PracticeMode: React.FC = () => {
       number => JSON.stringify(BRAILLE_NUMBERS[number]) === JSON.stringify(dots)
     );
     setMatchingNumber(numberMatch || '');
+
+    // TTS 음성 출력 (알파벳이나 숫자가 매칭되었을 때)
+    if (alphabetMatch || numberMatch) {
+      const textToSpeak = alphabetMatch || getNumberWord(numberMatch || '');
+      playTTS(textToSpeak);
+    }
+  };
+
+  // 숫자를 영어 단어로 변환
+  const getNumberWord = (number: string): string => {
+    const numberWords: { [key: string]: string } = {
+      '0': 'zero',
+      '1': 'one',
+      '2': 'two', 
+      '3': 'three',
+      '4': 'four',
+      '5': 'five',
+      '6': 'six',
+      '7': 'seven',
+      '8': 'eight',
+      '9': 'nine'
+    };
+    return numberWords[number] || number;
+  };
+
+  // TTS 음성 재생 함수
+  const playTTS = (text: string) => {
+    try {
+      // speechSynthesis가 사용 가능한지 확인
+      if ('speechSynthesis' in window) {
+        // 기존 음성 중단
+        speechSynthesis.cancel();
+        
+        // 약간의 딜레이 후 실행 (브라우저 정책 대응)
+        setTimeout(() => {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          utterance.volume = 1.0; // 볼륨 최대
+          utterance.lang = 'en-US';
+          
+          // 이벤트 리스너 추가 (디버깅용)
+          utterance.onstart = () => {
+            console.log(`🔊 TTS started: ${text}`);
+          };
+          utterance.onend = () => {
+            console.log(`✅ TTS finished: ${text}`);
+          };
+          utterance.onerror = (event) => {
+            console.error('❌ TTS error:', event);
+          };
+          
+          console.log(`🎵 Speaking in Practice Mode: "${text}"`);
+          speechSynthesis.speak(utterance);
+        }, 100);
+      } else {
+        console.error('❌ speechSynthesis not supported in this browser');
+      }
+    } catch (error) {
+      console.error('❌ TTS error:', error);
+    }
   };
 
   const handleBrailleKeyClick = (dot: number) => {
@@ -109,9 +170,18 @@ const PracticeMode: React.FC = () => {
             <div className="text-6xl font-bold text-blue-600 mb-4">
               {matchingAlphabet || '?'}
             </div>
-            <div className="text-3xl text-gray-600">
+            <div className="text-3xl text-gray-600 mb-4">
               {getDotPatternText()}
             </div>
+            {/* TTS 버튼 - 알파벳 */}
+            {matchingAlphabet && (
+              <button
+                onClick={() => playTTS(matchingAlphabet)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              >
+                🔊 Play "{matchingAlphabet}"
+              </button>
+            )}
           </div>
 
           {/* Number Card */}
@@ -122,9 +192,18 @@ const PracticeMode: React.FC = () => {
             <div className="text-6xl font-bold text-blue-600 mb-4">
               {matchingNumber || '?'}
             </div>
-            <div className="text-3xl text-gray-600">
+            <div className="text-3xl text-gray-600 mb-4">
               {getDotPatternText()}
             </div>
+            {/* TTS 버튼 - 숫자 */}
+            {matchingNumber && (
+              <button
+                onClick={() => playTTS(getNumberWord(matchingNumber))}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              >
+                🔊 Play "{getNumberWord(matchingNumber)}"
+              </button>
+            )}
           </div>
 
           {/* Braille Keyboard - Conditional Display */}

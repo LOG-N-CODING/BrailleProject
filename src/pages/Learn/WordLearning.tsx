@@ -3,6 +3,8 @@ import { BRAILLE_ALPHABET, generateBraillePattern, parseInputBits, findCharacter
 import { SectionHeader } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { updateWordProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
 
 // Words data based on Words.md
@@ -35,11 +37,13 @@ const wordsData = {
 
 const WordLearning: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [targetWords, setTargetWords] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState<string>('');
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [completedWords, setCompletedWords] = useState<{ [category: string]: Set<string> }>({});
   
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -49,10 +53,50 @@ const WordLearning: React.FC = () => {
   const categories = Object.keys(wordsData);
 
   useEffect(() => {
+    // 사용자의 학습 진행도 로드
+    if (user) {
+      loadUserProgress();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (selectedCategory) {
       generateRandomTargets();
     }
   }, [selectedCategory]);
+
+  const loadUserProgress = async () => {
+    if (!user) {
+      console.log('🔐 No user logged in - skipping progress load');
+      return;
+    }
+    
+    console.log('📊 Loading user progress for:', user.email);
+    
+    try {
+      const progress = await getUserLearningProgress(user);
+      console.log('📈 Progress loaded:', progress);
+      
+      const completed: { [category: string]: Set<string> } = {};
+      
+      // 완료된 단어들을 카테고리별로 Set에 추가
+      Object.entries(progress.words).forEach(([category, words]) => {
+        completed[category] = new Set<string>();
+        Object.entries(words as { [word: string]: number }).forEach(([word, status]) => {
+          if (status === 1) {
+            completed[category].add(word);
+            console.log(`✅ Word ${word} in ${category} is already completed`);
+          }
+        });
+      });
+      
+      setCompletedWords(completed);
+      console.log('🎯 Total completed words by category:', 
+        Object.entries(completed).map(([cat, words]) => `${cat}: ${words.size}`).join(', '));
+    } catch (error) {
+      console.error('❌ Failed to load user progress:', error);
+    }
+  };
 
   const wordCount = 5; // 단어 개수
 
@@ -67,19 +111,82 @@ const WordLearning: React.FC = () => {
     setGameCompleted(false);
   };
 
-  const checkAnswer = (inputToCheck?: string) => {
+  const checkAnswer = async (inputToCheck?: string) => {
     const currentInput = inputToCheck || userInput;
     if (targetWords.length === 0 || currentInput.length === 0) return;
     
     const targetWord = targetWords[currentIndex];
     
+    console.log('🔍 Checking word answer:', {
+      targetWord,
+      currentInput: currentInput.toLowerCase(),
+      user: user ? user.email : 'not logged in',
+      selectedCategory,
+      alreadyCompleted: completedWords[selectedCategory]?.has(targetWord)
+    });
+    
     if (currentInput.toLowerCase() === targetWord.toLowerCase()) {
-      // 단어 발음
-      const utterance = new SpeechSynthesisUtterance(targetWord);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.lang = 'en-US';
-      speechSynthesis.speak(utterance);
+      console.log('✅ Correct word answer!');
+      
+      // 단어 발음 - 개선된 버전
+      try {
+        // speechSynthesis가 사용 가능한지 확인
+        if ('speechSynthesis' in window) {
+          // 기존 음성 중단
+          speechSynthesis.cancel();
+          
+          // 약간의 딜레이 후 실행 (브라우저 정책 대응)
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(targetWord);
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
+            utterance.volume = 1.0; // 볼륨 최대
+            utterance.lang = 'en-US';
+            
+            // 이벤트 리스너 추가 (디버깅용)
+            utterance.onstart = () => {
+              console.log(`🔊 TTS started: ${targetWord}`);
+            };
+            utterance.onend = () => {
+              console.log(`✅ TTS finished: ${targetWord}`);
+            };
+            utterance.onerror = (event) => {
+              console.error('❌ TTS error:', event);
+            };
+            
+            console.log(`🎵 Attempting to speak: "${targetWord}"`);
+            console.log('Available voices:', speechSynthesis.getVoices().length);
+            
+            speechSynthesis.speak(utterance);
+          }, 100);
+        } else {
+          console.error('❌ speechSynthesis not supported in this browser');
+        }
+      } catch (error) {
+        console.error('❌ TTS error:', error);
+      }
+      
+      // 학습 진행도 저장 (로그인한 사용자만)
+      if (user && !completedWords[selectedCategory]?.has(targetWord)) {
+        console.log('💾 Attempting to save word progress to Firestore...');
+        try {
+          await updateWordProgress(user, selectedCategory, targetWord);
+          
+          // 로컬 상태 업데이트
+          setCompletedWords(prev => ({
+            ...prev,
+            [selectedCategory]: new Set([...(prev[selectedCategory] || []), targetWord])
+          }));
+          
+          console.log(`🎉 Word "${targetWord}" in category "${selectedCategory}" progress saved to database successfully!`);
+        } catch (error) {
+          console.error('❌ Failed to save word progress:', error);
+        }
+      } else if (!user) {
+        console.log('⚠️ User not logged in - skipping database save');
+      } else if (completedWords[selectedCategory]?.has(targetWord)) {
+        console.log(`ℹ️ Word "${targetWord}" already completed - skipping save`);
+      }
       
       Swal.fire({
         toast: true,
@@ -100,7 +207,7 @@ const WordLearning: React.FC = () => {
             Swal.fire({
               icon: 'success',
               title: 'Completed!',
-              text: `All letters completed!`,
+              text: `All words completed!`,
               confirmButtonText: 'Practice Again',
               cancelButtonText: 'Back to Learning Menu',
               showCancelButton: true,
@@ -204,24 +311,68 @@ const WordLearning: React.FC = () => {
             
             <SectionHeader title="Words - Choose Category" />
             <p className="text-gray-600 mb-6">Select a category to start the words learning</p>
+            
+            {/* Login Status */}
+            {!user && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-yellow-800 text-sm">
+                  📚 Sign in to save your learning progress!
+                </p>
+              </div>
+            )}
+            
+            {/* Debug Section - 개발 중에만 사용 */}
+            {user && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-blue-800 text-sm mb-2">
+                  🐛 Debug: Logged in as {user.email}
+                </p>
+                <button
+                  onClick={async () => {
+                    console.log('🧪 Manual test: Trying to save word "subject" in "School & Education"');
+                    try {
+                      await updateWordProgress(user, 'School & Education', 'subject');
+                      console.log('✅ Manual test successful!');
+                      alert('Test successful! Check console and Firebase.');
+                    } catch (error) {
+                      console.error('❌ Manual test failed:', error);
+                      alert('Test failed! Check console for details.');
+                    }
+                  }}
+                  className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
+                >
+                  Test Firebase Save
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {categories.map((category) => (
-              <div
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
-                <p className="text-gray-600">
-                  {wordsData[category as keyof typeof wordsData].length} words available
-                </p>
-                <div className="mt-4 text-sm text-gray-500">
-                  Click to start learning with {category.toLowerCase()} words
+            {categories.map((category) => {
+              const totalWords = wordsData[category as keyof typeof wordsData].length;
+              const completedCount = completedWords[category]?.size || 0;
+              
+              return (
+                <div
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">{category}</h3>
+                  <p className="text-gray-600">
+                    {totalWords} words available
+                  </p>
+                  {user && (
+                    <p className="text-sm text-purple-600 mt-2">
+                      ✓ {completedCount}/{totalWords} completed
+                    </p>
+                  )}
+                  <div className="mt-4 text-sm text-gray-500">
+                    Click to start learning with {category.toLowerCase()} words
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="my-10 flex justify-center">
             <button
@@ -245,6 +396,15 @@ const WordLearning: React.FC = () => {
           <SectionHeader title={`Words - ${selectedCategory}`} />
           <p className="text-gray-600 mb-6">Type the word using braille patterns - words are automatically checked when complete</p>
           
+          {/* Login Status */}
+          {!user && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-yellow-800 text-sm">
+                📚 Sign in to save your learning progress!
+              </p>
+            </div>
+          )}
+          
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
             <div 
@@ -254,6 +414,11 @@ const WordLearning: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600">
             Progress: {currentIndex + 1} of {targetWords.length}
+            {user && completedWords[selectedCategory] && (
+              <span className="ml-4 text-purple-600">
+                • {completedWords[selectedCategory].size}/{wordsData[selectedCategory as keyof typeof wordsData].length} words learned in this category
+              </span>
+            )}
           </div>
         </div>
 
