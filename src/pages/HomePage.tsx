@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
                 variants={fadeInUp}
               >
                 <span className="text-[#2575FF]">Braille</span>
-                <span className='text-white'>Play</span>
+                <span className='text-black'>Play</span>
               </motion.h1>
               <motion.h2 
                 className="text-xl sm:text-2xl lg:text-4xl font-light text-black mb-8"
@@ -167,16 +167,18 @@ const HomePage: React.FC = () => {
               variants={fadeInUp}
               whileHover={{ y: -5, transition: { duration: 0.6 } }}
             >
-              <div className="h-40 sm:h-48">
-                <img 
-                  src="/images/figma/quiz-zone-card.png" 
-                  alt="Quiz Zone" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Quiz Zone</h3>
-              </div>
+              <Link to="/quiz">
+                <div className="h-40 sm:h-48">
+                  <img 
+                    src="/images/figma/quiz-zone-card.png" 
+                    alt="Quiz Zone" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Quiz Zone</h3>
+                </div>
+              </Link>
             </motion.div>
 
             {/* Games Card */}
@@ -185,19 +187,18 @@ const HomePage: React.FC = () => {
               variants={fadeInUp}
               whileHover={{ y: -5, transition: { duration: 0.6 } }}
             >
-              <div className="h-40 sm:h-48">
-                <img 
-                  src="/images/figma/games-card.png" 
-                  alt="Games" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Games</h3>
-                {/* <p className="text-sm text-gray-700 text-center leading-relaxed">
-                  In Practice Mode, you can enter Braille using a keyboard or tactile device and receive immediate feedback to help you learn and improve.
-                </p> */}
-              </div>
+              <Link to="/games">
+                <div className="h-40 sm:h-48">
+                  <img 
+                    src="/images/figma/games-card.png" 
+                    alt="Games" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-medium text-gray-800 mb-3 sm:mb-4 text-center">Games</h3>
+                </div>
+              </Link>
             </motion.div>
           </motion.div>
         </div>

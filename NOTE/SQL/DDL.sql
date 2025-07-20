@@ -89,7 +89,7 @@ CREATE TABLE math_quiz (
 CREATE TABLE game_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL COMMENT '사용자명',
-    type ENUM('게임', '스프린트') NOT NULL COMMENT '게임 타입',
+    type ENUM('GAME', 'SPRINT') NOT NULL COMMENT '게임 타입',
     cpm INT NOT NULL DEFAULT 0 COMMENT 'Characters Per Minute',
     combo INT NOT NULL DEFAULT 0 COMMENT '콤보 수',
     score INT NOT NULL DEFAULT 0 COMMENT '점수',

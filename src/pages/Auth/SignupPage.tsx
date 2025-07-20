@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
-import { createInitialLearningProgress } from '../../utils/learningProgress';
 
 const SignupPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -115,13 +114,10 @@ const SignupPage: React.FC = () => {
       // 사용자 기본 정보 저장
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
+        name: formData.name,
+        dateOfBirth: formData.dateOfBirth,
         createdAt: serverTimestamp(),
-        // name, photoURL 등 추가 정보가 있다면 넣기
       });
-
-      // 초기 학습 진행도 생성
-      const initialProgress = createInitialLearningProgress();
-      await setDoc(doc(db, 'users', user.uid, 'data', 'learningProgress'), initialProgress);
 
       await signInWithEmailAndPassword(auth, username, password);
       console.log('자동 로그인 완료');

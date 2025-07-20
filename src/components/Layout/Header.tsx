@@ -301,7 +301,13 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <Link to="/quiz" className="text-gray-700 font-medium text-lg hover:text-primary-500">Quiz</Link>
+                      <Link 
+                        to="/quiz" 
+                        className="text-gray-700 font-medium text-lg hover:text-primary-500"
+                        onClick={() => setIsMenuOpen(false)}
+                        >
+                        Quiz
+                      </Link>
                       <div className="ml-2 flex flex-col mt-2">
                         <Link
                           to="/quiz/image-to-braille"
@@ -320,7 +326,13 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-700 font-medium text-lg">Game</span>
+                      <Link
+                          to="/games"
+                          className="text-gray-600 hover:text-primary-500 py-2 text-base"
+                          onClick={() => setIsMenuOpen(false)}
+                          >
+                          Game
+                      </Link>
                       <div className="ml-2 flex flex-col mt-2">
                         <Link
                           to="/games/typing-game"
