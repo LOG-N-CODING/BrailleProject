@@ -1,8 +1,14 @@
 // scripts/seedAdmin.ts
 import * as admin from 'firebase-admin';
 
+// Firebase 에뮬레이터 환경에서 실행
+process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
+process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
+
 // 서비스 계정 키를 사용하거나, 이미 초기화된 default 앱 사용
-admin.initializeApp();
+admin.initializeApp({
+  projectId: 'braille-app-19a76'
+});
 
 async function seedAdmin() {
   try {

@@ -9,7 +9,13 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"],
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run lint",
         "npm --prefix \"$RESOURCE_DIR\" run build"
@@ -18,7 +24,11 @@
   ],
   "hosting": {
     "public": "build",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
@@ -45,7 +55,8 @@
     },
     "apphosting": {
       "port": 5002,
-      "rootDirectory": "build"
+      "rootDirectory": "./",
+      "startCommand": "npm run dev"
     },
     "database": {
       "port": 9000
@@ -63,7 +74,8 @@
       "port": 9299
     },
     "dataconnect": {
-      "port": 9399
+      "port": 9399,
+      "dataDir": "dataconnect/.dataconnect/pgliteData"
     },
     "tasks": {
       "port": 9499
