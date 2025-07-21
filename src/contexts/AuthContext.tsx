@@ -8,7 +8,8 @@ import {
   signOut as firebaseSignOut,
   Auth,
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth, db } from '../firebase/config';
+import { getDoc, doc } from 'firebase/firestore';
 
 interface AuthContextProps {
   user: User | null;
@@ -16,6 +17,7 @@ interface AuthContextProps {
   signUp: (email: string, password: string) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -48,8 +50,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 로그아웃
   const signOut = () => firebaseSignOut(auth as Auth);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async u => {
+      setUser(u);
+      if (u) {
+        // 로그인된 유저 Firestore에서 isAdmin 필드 읽기
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        setIsAdmin(snap.exists() && snap.data()?.isAdmin === 1);
+      } else {
+        setIsAdmin(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, isAdmin }}>
       {/* 로딩 중 화면 처리 */}
       {loading ? <div>Loading...</div> : children}
     </AuthContext.Provider>
