@@ -1,4 +1,4 @@
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Outlet, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Footer from './components/Layout/Footer';
 import Header from './components/Layout/Header';
 import { BrailleDeviceFloatingButton } from './components/UI';
@@ -23,6 +23,8 @@ import WordLearning from './pages/Learn/WordLearning';
 import ImageToBraille from './pages/Quiz/ImageToBraille';
 import MathQuiz from './pages/Quiz/MathQuiz';
 import QuizIndex from './pages/Quiz/QuizIndex';
+import AdminPage from './pages/Adimin/AdminPage';
+import { ProtectedRoute } from './components/Layout/ProtectedRoute';
 
 function App() {
   return (
@@ -35,35 +37,48 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
 
-                {/* Learn Routes */}
-                <Route path="/learn" element={<LearnIndex />} />
-                <Route path="/learn/alphabet-mode" element={<AlphabetModeSelect />} />
-                <Route path="/learn/alphabet" element={<AlphabetLearning />} />
-                <Route path="/learn/words" element={<WordLearning />} />
-                <Route path="/learn/phrases" element={<PhraseLearning />} />
-                <Route path="/learn/numbers" element={<NumberLearning />} />
-                <Route path="/learn/practice" element={<PracticeMode />} />
-
-                {/* Quiz Routes */}
-                <Route path="/quiz" element={<QuizIndex />} />
-                <Route path="/quiz/image-to-braille" element={<ImageToBraille />} />
-                <Route path="/quiz/math" element={<MathQuiz />} />
-
-                {/* Game Routes */}
-                <Route path="/games" element={<GameIndex />} />
-                <Route path="/games/typing-game" element={<TypingGame />} />
-                <Route path="/games/typing-sprint" element={<TypingSprint />} />
-
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
 
-                {/* My Page */}
-                <Route path="/my" element={<MyPage />} />
-
                 {/* Other Pages */}
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+
+                {/* Protected Routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  {/* Learn Routes */}
+                  <Route path="learn" element={<LearnIndex />} />
+                  <Route path="learn/alphabet-mode" element={<AlphabetModeSelect />} />
+                  <Route path="learn/alphabet" element={<AlphabetLearning />} />
+                  <Route path="learn/words" element={<WordLearning />} />
+                  <Route path="learn/phrases" element={<PhraseLearning />} />
+                  <Route path="learn/numbers" element={<NumberLearning />} />
+                  <Route path="learn/practice" element={<PracticeMode />} />
+
+                  {/* Quiz Routes */}
+                  <Route path="quiz" element={<QuizIndex />} />
+                  <Route path="quiz/image-to-braille" element={<ImageToBraille />} />
+                  <Route path="quiz/math" element={<MathQuiz />} />
+
+                  {/* Game Routes */}
+                  <Route path="games" element={<GameIndex />} />
+                  <Route path="games/typing-game" element={<TypingGame />} />
+                  <Route path="games/typing-sprint" element={<TypingSprint />} />
+
+                  {/* My Page */}
+                  <Route path="my" element={<MyPage />} />
+
+                  {/* Admin Page */}
+                  <Route path="admin" element={<AdminPage />} />
+                </Route>
               </Routes>
             </main>
             <Footer />
