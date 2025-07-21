@@ -1,5 +1,7 @@
-import { writeBatch, collection, doc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { writeBatch, collection, doc, serverTimestamp, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
+import { useState } from 'react';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
 const wordsData: Record<string, string[]> = {
   'School & Education': [
@@ -357,11 +359,88 @@ const phraseDeleteAll = async () => {
   alert('모든 카테고리 및 숙어 삭제 완료!');
 };
 
-const AdminTest = () => {
+const AdminTest: React.FC = () => {
+  // --- Admin 계정 폼 state ---
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminDob, setAdminDob] = useState('');
+
+  const createAdmin = async () => {
+    if (!adminName || !adminEmail || !adminPassword || !adminDob) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    const auth = getAuth();
+    try {
+      // 1) Auth 계정 생성
+      const { user } = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+
+      // 2) Firestore users/{uid} 문서에 isAdmin 플래그 저장
+      await setDoc(doc(db, 'users', user.uid), {
+        name: adminName,
+        email: adminEmail,
+        dateOfBirth: adminDob,
+        isAdmin: 1,
+        createdAt: serverTimestamp(),
+      });
+
+      alert('어드민 계정이 생성되었습니다.');
+      setAdminName('');
+      setAdminEmail('');
+      setAdminPassword('');
+      setAdminDob('');
+    } catch (e: any) {
+      console.error(e);
+      alert('어드민 생성 중 오류: ' + e.message);
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1>Admin Test</h1>
-      <div className="flex space-x-4 mt-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 space-y-6 p-4">
+      {/* — Admin 계정 생성 폼 — */}
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-4">Create Admin Account</h2>
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="Name"
+            value={adminName}
+            onChange={e => setAdminName(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={adminEmail}
+            onChange={e => setAdminEmail(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={adminPassword}
+            onChange={e => setAdminPassword(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+          <input
+            type="date"
+            placeholder="Date of Birth"
+            value={adminDob}
+            onChange={e => setAdminDob(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+          <button
+            onClick={createAdmin}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          >
+            Create Admin
+          </button>
+        </div>
+      </div>
+
+      {/* — 기존 Import/Delete 버튼들 — */}
+      <div className="flex space-x-4">
         <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={wordsImportAll}>
           Words Import All
         </button>
@@ -369,7 +448,7 @@ const AdminTest = () => {
           Words Delete All
         </button>
       </div>
-      <div className="flex space-x-4 mt-4">
+      <div className="flex space-x-4">
         <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={phraseImportAll}>
           Phrases Import All
         </button>

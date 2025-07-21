@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
+    "target": "es2020", // 최신 JS 기능 허용
+    "module": "commonjs", // Firebase Functions 런타임이 CommonJS를 씁니다
+    "lib": ["ES2017", "DOM", "DOM.Iterable"],
+    "outDir": "lib", // 컴파일 산출물
+    "rootDir": "src", // 소스는 src/
+    "strict": true, // 엄격 모드
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
-    "strict": true,
-    "target": "es2017"
+    "forceConsistentCasingInFileNames": true
   },
-  "compileOnSave": true,
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

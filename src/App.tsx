@@ -2,7 +2,7 @@ import { Outlet, Route, BrowserRouter as Router, Routes } from 'react-router-dom
 import Footer from './components/Layout/Footer';
 import Header from './components/Layout/Header';
 import { BrailleDeviceFloatingButton } from './components/UI';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrailleDeviceProvider } from './contexts/BrailleDeviceContext';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/Auth/LoginPage';
@@ -25,67 +25,98 @@ import MathQuiz from './pages/Quiz/MathQuiz';
 import QuizIndex from './pages/Quiz/QuizIndex';
 import AdminPage from './pages/Adimin/AdminPage';
 import { ProtectedRoute } from './components/Layout/ProtectedRoute';
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import app from './firebase/config';
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const functions = getFunctions(app);
+
+// .env.development.local 에 추가:
+// REACT_APP_USE_EMULATOR=true
+if (process.env.REACT_APP_USE_EMULATOR === 'true') {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+}
+
+function AppContent() {
+  const { isAdmin } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col overflow-hidden">
+      <Header />
+
+      <main className="flex-1">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+
+          {/* Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <Outlet />
+              </ProtectedRoute>
+            }
+          >
+            {/* Learn */}
+            <Route path="learn" element={<LearnIndex />} />
+            <Route path="learn/alphabet-mode" element={<AlphabetModeSelect />} />
+            <Route path="learn/alphabet" element={<AlphabetLearning />} />
+            <Route path="learn/numbers" element={<NumberLearning />} />
+            <Route path="learn/words" element={<WordLearning />} />
+            <Route path="learn/phrases" element={<PhraseLearning />} />
+            <Route path="learn/practice" element={<PracticeMode />} />
+
+            {/* Quiz */}
+            <Route path="quiz" element={<QuizIndex />} />
+            <Route path="quiz/image-to-braille" element={<ImageToBraille />} />
+            <Route path="quiz/math" element={<MathQuiz />} />
+
+            {/* Games */}
+            <Route path="games" element={<GameIndex />} />
+            <Route path="games/typing-game" element={<TypingGame />} />
+            <Route path="games/typing-sprint" element={<TypingSprint />} />
+
+            {/* My Page */}
+            <Route path="my" element={<MyPage />} />
+
+            {/* Admin Page */}
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute adminOnly={true}>
+                  <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Routes>
+      </main>
+
+      {/* 관리자일 때는 숨기고, 일반 유저일 때만 노출 */}
+      {!isAdmin && <Footer />}
+      {!isAdmin && <BrailleDeviceFloatingButton />}
+    </div>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
       <BrailleDeviceProvider>
         <Router>
-          <div className="min-h-screen bg-white flex flex-col ">
-            <Header />
-            <main className="flex-1 ">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-
-                {/* Auth Routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-
-                {/* Other Pages */}
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-
-                {/* Protected Routes */}
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <Outlet />
-                    </ProtectedRoute>
-                  }
-                >
-                  {/* Learn Routes */}
-                  <Route path="learn" element={<LearnIndex />} />
-                  <Route path="learn/alphabet-mode" element={<AlphabetModeSelect />} />
-                  <Route path="learn/alphabet" element={<AlphabetLearning />} />
-                  <Route path="learn/words" element={<WordLearning />} />
-                  <Route path="learn/phrases" element={<PhraseLearning />} />
-                  <Route path="learn/numbers" element={<NumberLearning />} />
-                  <Route path="learn/practice" element={<PracticeMode />} />
-
-                  {/* Quiz Routes */}
-                  <Route path="quiz" element={<QuizIndex />} />
-                  <Route path="quiz/image-to-braille" element={<ImageToBraille />} />
-                  <Route path="quiz/math" element={<MathQuiz />} />
-
-                  {/* Game Routes */}
-                  <Route path="games" element={<GameIndex />} />
-                  <Route path="games/typing-game" element={<TypingGame />} />
-                  <Route path="games/typing-sprint" element={<TypingSprint />} />
-
-                  {/* My Page */}
-                  <Route path="my" element={<MyPage />} />
-
-                  {/* Admin Page */}
-                  <Route path="admin" element={<AdminPage />} />
-                </Route>
-              </Routes>
-            </main>
-            <Footer />
-
-            {/* Global Floating Button */}
-            <BrailleDeviceFloatingButton />
-          </div>
+          <AppContent />
         </Router>
       </BrailleDeviceProvider>
     </AuthProvider>

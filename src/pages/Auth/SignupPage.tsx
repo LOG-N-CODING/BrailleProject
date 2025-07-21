@@ -116,6 +116,7 @@ const SignupPage: React.FC = () => {
         email: user.email,
         name: formData.name,
         dateOfBirth: formData.dateOfBirth,
+        isAdmin: 0,
         createdAt: serverTimestamp(),
       });
 

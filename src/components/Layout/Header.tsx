@@ -1,13 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const Header: React.FC = () => {
   const [isLearnDropdownOpen, setIsLearnDropdownOpen] = useState(false);
   const [isQuizDropdownOpen, setIsQuizDropdownOpen] = useState(false);
   const [isGameDropdownOpen, setIsGameDropdownOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin } = useAuth();
+
+  if (isAdmin) {
+    return (
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            {/* 왼쪽 로고 */}
+            <Link to="/" className="flex items-center">
+              <img
+                src="/images/figma/logo-mini.png"
+                alt="Logo"
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              />
+              <span className="ml-2 font-bold text-2xl text-[#2575FF]">Braille</span>
+              <span className="font-bold text-2xl text-black">Play</span>
+            </Link>
+
+            {/* 오른쪽: AdminPage 링크 + Sign out 버튼 */}
+            <div className="flex items-center space-x-4">
+              <Link to="/admin" className="text-gray-700 hover:text-primary-500 font-medium">
+                Admin Page
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-gray-700 hover:text-primary-500 font-medium"
+              >
+                Sign out
+              </button>
+              {/* Hamburger Menu for mobile */}
+              <button
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10"
+                aria-label="Open menu"
+                onClick={() => setIsMenuOpen(true)}
+              >
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-white shadow-sm ">
@@ -101,7 +157,10 @@ const Header: React.FC = () => {
                 onMouseEnter={() => setIsQuizDropdownOpen(true)}
                 onMouseLeave={() => setIsQuizDropdownOpen(false)}
               >
-                <Link to="/quiz" className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
+                <Link
+                  to="/quiz"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                >
                   Quiz
                   <svg
                     className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
@@ -143,7 +202,10 @@ const Header: React.FC = () => {
                 onMouseEnter={() => setIsGameDropdownOpen(true)}
                 onMouseLeave={() => setIsGameDropdownOpen(false)}
               >
-                <Link to="/games" className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2">
+                <Link
+                  to="/games"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                >
                   Game
                   <svg
                     className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
@@ -185,19 +247,19 @@ const Header: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4">
             {user ? (
               <>
-              <Link
-                to="/"
-                onClick={signOut}
-                className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
-              >
-                Sign out
-              </Link>
-              <Link
-                to="/my"
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-gray-700 hover:text-primary-500"
-              >
-                <span className="material-icons text-xl sm:text-2xl">person</span>
-              </Link>
+                <Link
+                  to="/"
+                  onClick={signOut}
+                  className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
+                >
+                  Sign out
+                </Link>
+                <Link
+                  to="/my"
+                  className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-gray-700 hover:text-primary-500"
+                >
+                  <span className="material-icons text-xl sm:text-2xl">person</span>
+                </Link>
               </>
             ) : (
               <>
@@ -301,11 +363,11 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <Link 
-                        to="/quiz" 
+                      <Link
+                        to="/quiz"
                         className="text-gray-700 font-medium text-lg hover:text-primary-500"
                         onClick={() => setIsMenuOpen(false)}
-                        >
+                      >
                         Quiz
                       </Link>
                       <div className="ml-2 flex flex-col mt-2">
@@ -327,11 +389,11 @@ const Header: React.FC = () => {
                     </div>
                     <div>
                       <Link
-                          to="/games"
-                          className="text-gray-600 hover:text-primary-500 py-2 text-base"
-                          onClick={() => setIsMenuOpen(false)}
-                          >
-                          Game
+                        to="/games"
+                        className="text-gray-600 hover:text-primary-500 py-2 text-base"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Game
                       </Link>
                       <div className="ml-2 flex flex-col mt-2">
                         <Link
