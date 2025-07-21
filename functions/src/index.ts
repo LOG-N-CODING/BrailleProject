@@ -1,32 +1,32 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+// functions/src/index.ts
 
-import {setGlobalOptions} from "firebase-functions";
-// import {onRequest} from "firebase-functions/https";
-// import * as logger from "firebase-functions/logger";
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+admin.initializeApp();
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({maxInstances: 10});
+export const deleteUserAndData = functions.https.onCall(async (data, context) => {
+  // 1) 인증된 호출자인지
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', '로그인이 필요합니다.');
+  }
+  const callerUid = context.auth.uid;
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  // 2) 관리자 권한 확인
+  const callerSnap = await admin.firestore().doc(`users/${callerUid}`).get();
+  if (!callerSnap.exists || callerSnap.data()?.isAdmin !== 1) {
+    throw new functions.https.HttpsError('permission-denied', '관리자만 접근 가능합니다.');
+  }
+
+  // 3) 삭제 대상 UID
+  const targetUid = data.uid as string; // any → string 단언
+  if (!targetUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'uid가 필요합니다.');
+  }
+
+  // 4) Auth & Firestore 삭제
+  await admin.auth().deleteUser(targetUid);
+  await admin.firestore().doc(`users/${targetUid}`).delete();
+
+  return { success: true };
+});

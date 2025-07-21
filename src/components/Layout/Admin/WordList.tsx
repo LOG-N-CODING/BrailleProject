@@ -1,11 +1,15 @@
+// WordList.tsx
+
+import React, { useState } from 'react';
 import {
   addDoc,
   collection,
   serverTimestamp,
   deleteDoc,
+  updateDoc,
   doc as firestoreDoc,
+  Timestamp,
 } from 'firebase/firestore';
-import { useState } from 'react';
 import { db } from '../../../firebase/config';
 import { useCollection } from '../../../utils/useCollections';
 
@@ -13,15 +17,19 @@ type Word = {
   id: string;
   category: string;
   content: string;
+  createdAt: number | Timestamp;
 };
 
 export function WordList() {
   const [category, setCategory] = useState('');
   const [content, setContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [editingWordId, setEditingWordId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+
   const words = useCollection<Word>('words');
 
-  // 카테고리별 그룹핑
+  // Group words by category
   const groupedWords = words.reduce((acc, w) => {
     if (!acc[w.category]) acc[w.category] = [];
     acc[w.category].push(w);
@@ -33,58 +41,79 @@ export function WordList() {
   const wordCountInCategory = groupedWords[category]?.length || 0;
   const isDuplicate = !!groupedWords[category]?.some(w => w.content === content);
 
+  // Add new word
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!category || !content) return;
 
-    // 같은 카테고리에 같은 단어 중복 방지
     if (isDuplicate) {
-      alert(`"${content}" 단어는 이미 "${category}" 카테고리에 등록되어 있습니다.`);
+      alert(`"${content}" already exists in "${category}" category.`);
+      return;
+    }
+    if (isNewCategory && distinctCategoryCount >= 10) {
+      alert('You can only create up to 10 categories.');
+      return;
+    }
+    if (wordCountInCategory >= 20) {
+      alert(`"${category}" category can only have up to 20 words.`);
       return;
     }
 
-    // 카테고리 개수 제한
-    if (isNewCategory && distinctCategoryCount >= 10) {
-      alert('카테고리는 최대 10개까지 등록 가능합니다.');
-      return;
-    }
-    // 단어 개수 제한
-    if (wordCountInCategory >= 20) {
-      alert(`"${category}" 카테고리에는 최대 20개의 단어만 등록 가능합니다.`);
-      return;
-    }
-    // 2) 로컬 폼 값 비우기 → 이후 렌더링에서 isDuplicate false
-    const wordToAdd = content.trim();
+    const trimmed = content.trim();
     setCategory('');
     setContent('');
-
-    // 3) DB 쓰기
     await addDoc(collection(db, 'words'), {
       category,
-      content: wordToAdd,
+      content: trimmed,
       createdAt: serverTimestamp(),
     });
   };
 
+  // Delete a single word
   const handleDelete = async (id: string) => {
-    if (window.confirm('정말 이 단어를 삭제하시겠습니까?')) {
-      await deleteDoc(firestoreDoc(db, 'words', id));
-    }
+    if (!window.confirm('Are you sure you want to delete this word?')) return;
+    await deleteDoc(firestoreDoc(db, 'words', id));
   };
 
+  // Delete entire category
   const handleDeleteCategory = async (cat: string) => {
-    const items = groupedWords[cat];
-    if (!items?.length) return;
-    if (window.confirm(`정말 "${cat}" 카테고리와 모든 단어를 삭제하시겠습니까?`)) {
+    const items = groupedWords[cat] || [];
+    if (items.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete category "${cat}" and all its words?`)) {
       await Promise.all(items.map(w => deleteDoc(firestoreDoc(db, 'words', w.id))));
-      if (selectedCategory === cat) setSelectedCategory('');
+      if (selectedCategory === cat) {
+        setSelectedCategory('');
+      }
     }
   };
 
-  // 선택된 카테고리의 단어 목록
+  // Edit word
+  const startEdit = (w: Word) => {
+    setEditingWordId(w.id);
+    setEditingContent(w.content);
+  };
+  const cancelEdit = () => {
+    setEditingWordId(null);
+    setEditingContent('');
+  };
+  const saveEdit = async (w: Word) => {
+    const trimmed = editingContent.trim();
+    if (!trimmed) {
+      alert('Content cannot be empty.');
+      return;
+    }
+    // Prevent duplicates in same category
+    if (groupedWords[w.category].filter(x => x.id !== w.id).some(x => x.content === trimmed)) {
+      alert(`"${trimmed}" already exists in "${w.category}" category.`);
+      return;
+    }
+    await updateDoc(firestoreDoc(db, 'words', w.id), { content: trimmed });
+    cancelEdit();
+  };
+
+  // Words to display under selected category
   const displayedWords = selectedCategory ? groupedWords[selectedCategory] || [] : [];
 
-  // Add 버튼 활성화 여부
   const canAdd =
     !!category &&
     !!content &&
@@ -93,55 +122,58 @@ export function WordList() {
     !isDuplicate;
 
   return (
-    <div className="w-[70%] mx-auto bg-white shadow rounded-lg p-8">
-      <h2 className="text-2xl font-bold mb-6">단어 관리</h2>
-      <form onSubmit={handleAdd} className="space-y-4">
+    <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-8">
+      <h2 className="text-2xl font-bold mb-6">Word Management</h2>
+
+      {/* Add Form */}
+      <form onSubmit={handleAdd} className="space-y-4 mb-10">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+          <label className="block text-sm font-medium mb-1">Category</label>
           <input
             type="text"
             value={category}
-            onChange={e => setCategory(e.target.value.trim())}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="예: noun, verb"
+            onChange={e => setCategory(e.target.value)}
+            placeholder="e.g. noun, verb"
+            className="w-full border rounded p-2"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+          <label className="block text-sm font-medium mb-1">Content</label>
           <input
             type="text"
             value={content}
-            onChange={e => setContent(e.target.value.trim())}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="단어를 입력하세요"
+            onChange={e => setContent(e.target.value)}
+            placeholder="Enter word"
+            className="w-full border rounded p-2"
             required
           />
           {isDuplicate && (
-            <p className="text-red-500 text-sm mt-1">
-              "{content}" 단어는 이미 "{category}" 카테고리에 등록되어 있습니다.
+            <p className="text-red-600 text-sm mt-1">
+              "{content}" already exists in "{category}".
             </p>
           )}
         </div>
         <button
           type="submit"
           disabled={!canAdd}
-          className={`w-full py-3 text-white font-semibold rounded-lg transition ${
+          className={`w-full py-2 text-white font-semibold rounded transition ${
             canAdd ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'
           }`}
         >
-          단어 추가
+          Add Word
         </button>
       </form>
 
-      <div className="mt-10">
-        <h3 className="text-xl font-semibold mb-4">카테고리 선택</h3>
-        <div className="flex flex-wrap gap-2 mb-6 items-center">
+      {/* Category Selector */}
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold mb-2">Select Category</h3>
+        <div className="flex flex-wrap gap-2">
           {Object.keys(groupedWords).map(cat => (
             <div key={cat} className="flex items-center space-x-1">
               <button
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                className={`px-3 py-1 rounded ${
                   selectedCategory === cat
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
@@ -151,36 +183,65 @@ export function WordList() {
               </button>
               <button
                 onClick={() => handleDeleteCategory(cat)}
-                title="카테고리 삭제"
-                className="text-red-500 hover:text-red-600"
+                title="Delete Category"
+                className="text-red-600 hover:text-red-800"
               >
                 🗑️
               </button>
             </div>
           ))}
         </div>
-
-        {selectedCategory && (
-          <>
-            <h4 className="text-lg font-medium text-gray-800 mb-2">
-              {selectedCategory} 카테고리 단어
-            </h4>
-            <ul className="space-y-3">
-              {displayedWords.map(w => (
-                <li key={w.id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
-                  <div className="font-medium">{w.content}</div>
-                  <button
-                    onClick={() => handleDelete(w.id)}
-                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
-                  >
-                    삭제
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
       </div>
+
+      {/* Word List */}
+      {selectedCategory && (
+        <>
+          <h4 className="text-lg font-medium mb-3">Words in "{selectedCategory}" category</h4>
+          <ul className="space-y-3">
+            {displayedWords.map(w => (
+              <li key={w.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                {editingWordId === w.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editingContent}
+                      onChange={e => setEditingContent(e.target.value)}
+                      className="flex-1 border rounded p-2 mr-2"
+                    />
+                    <button
+                      onClick={() => saveEdit(w)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded mr-2"
+                    >
+                      Save
+                    </button>
+                    <button onClick={cancelEdit} className="px-3 py-1 bg-gray-300 rounded">
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1">{w.content}</span>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => startEdit(w)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(w.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
