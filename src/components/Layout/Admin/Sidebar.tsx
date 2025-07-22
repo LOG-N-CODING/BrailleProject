@@ -7,7 +7,7 @@ export function Sidebar({ onSelect }: { onSelect: (c: Cat) => void }) {
   const [active, setActive] = useState<Cat>('Users');
 
   return (
-    <div className="h-full bg-gray-100 p-4 overflow-y-auto">
+    <div className="h-full w-full bg-gray-100 p-4 overflow-y-auto">
       {categories.map(cat => (
         <div
           key={cat}

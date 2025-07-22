@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const Header: React.FC = () => {
   const [isLearnDropdownOpen, setIsLearnDropdownOpen] = useState(false);
@@ -13,54 +12,130 @@ const Header: React.FC = () => {
 
   if (isAdmin) {
     return (
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* 왼쪽 로고 */}
-            <Link to="/" className="flex items-center">
-              <img
-                src="/images/figma/logo-mini.png"
-                alt="Logo"
-                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-              />
-              <span className="ml-2 font-bold text-2xl text-[#2575FF]">Braille</span>
-              <span className="font-bold text-2xl text-black">Play</span>
+      <header className="bg-white shadow-sm relative">
+        {/* ──────────────── 데스크탑 헤더 ──────────────── */}
+        <div className="hidden lg:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 justify-between items-center h-20">
+          {/* 왼쪽 로고 */}
+          <Link to="/" className="flex items-center">
+            <img
+              src="/images/figma/logo-mini.png"
+              alt="Logo"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
+            <span className="ml-2 font-bold text-2xl text-[#2575FF]">Braille</span>
+            <span className="font-bold text-2xl text-black">Play</span>
+          </Link>
+          {/* 오른쪽: Admin / Sign out */}
+          <div className="flex items-center space-x-4">
+            <Link to="/admin" className="text-gray-700 hover:text-primary-500 font-medium">
+              Admin
             </Link>
-
-            {/* 오른쪽: AdminPage 링크 + Sign out 버튼 */}
-            <div className="flex items-center space-x-4">
-              <Link to="/admin" className="text-gray-700 hover:text-primary-500 font-medium">
-                Admin Page
-              </Link>
-              <button
-                onClick={signOut}
-                className="text-gray-700 hover:text-primary-500 font-medium"
-              >
-                Sign out
-              </button>
-              {/* Hamburger Menu for mobile */}
-              <button
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10"
-                aria-label="Open menu"
-                onClick={() => setIsMenuOpen(true)}
-              >
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>
-            </div>
+            <button onClick={signOut} className="text-gray-700 hover:text-primary-500 font-medium">
+              Sign out
+            </button>
           </div>
         </div>
+
+        {/* ──────────────── 모바일 헤더 ──────────────── */}
+        <div className="lg:hidden flex justify-between items-center px-4 py-4">
+          <Link to="/" className="flex items-center">
+            <img
+              src="/images/figma/logo-mini.png"
+              alt="Logo"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
+            <span className="ml-2 font-bold text-2xl text-[#2575FF]">Braille</span>
+            <span className="font-bold text-2xl text-black">Play</span>
+          </Link>
+          <button
+            aria-label="Open admin menu"
+            onClick={() => setIsMenuOpen(true)}
+            className="flex items-center justify-center w-8 h-8"
+          >
+            <svg
+              className="w-6 h-6 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* ──────────────── 모바일 오프캔버스 ──────────────── */}
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex">
+            <div className="flex-1" onClick={() => setIsMenuOpen(false)} />
+            <div className="bg-white w-64 h-full shadow-lg p-6 relative">
+              <button
+                className="absolute top-4 right-4"
+                aria-label="Close menu"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-700" />
+              </button>
+              <nav className="mt-8 space-y-4">
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Admin
+                </Link>
+                <Link
+                  to="/admin?section=Users"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Users
+                </Link>
+                <Link
+                  to="/admin?section=Words"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Words
+                </Link>
+                <Link
+                  to="/admin?section=Phrases"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Phrases
+                </Link>
+                <Link
+                  to="/admin?section=Quizzes"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Quizzes
+                </Link>
+                <Link
+                  to="/admin?section=AdminTest"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  AdminTest
+                </Link>
+                <button
+                  onClick={() => {
+                    signOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  Sign out
+                </button>
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
     );
   }
