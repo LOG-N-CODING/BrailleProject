@@ -22,7 +22,7 @@ service cloud.firestore {
     
     // 기타 임시 규칙 (필요에 따라 수정)
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 8, 11);
+      allow read, write: if request.time < timestamp.date(2025, 9, 30);
     }
   }
 }
