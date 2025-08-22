@@ -29,6 +29,8 @@ import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import app from './firebase/config';
+import ForgotEmailPage from './pages/Auth/ForgotEmailPage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -59,6 +61,8 @@ function AppContent() {
           {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-email" element={<ForgotEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected Routes */}
           <Route

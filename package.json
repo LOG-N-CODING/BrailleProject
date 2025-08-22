@@ -24,7 +24,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "tsc -p tsconfig.json",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "emulate": "firebase emulators:start --only functions,firestore,auth",
