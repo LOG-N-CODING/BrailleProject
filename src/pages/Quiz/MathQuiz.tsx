@@ -95,7 +95,7 @@ const MathQuiz: React.FC = () => {
         const d = doc.data() as any;
         return {
           id: doc.id,
-          question: d.question,
+          formula: d.formula,
           answer: d.answer,
           hint: d.hint,
           difficulty: d.difficulty,
@@ -464,7 +464,7 @@ const MathQuiz: React.FC = () => {
           >
             <div className="bg-gray-100 rounded-3xl p-8 shadow-lg max-w-4xl w-full">
               <h2 className="text-6xl font-normal text-blue-600 text-center">
-                {currentQuestion.question}
+                {currentQuestion.formula}
               </h2>
               <button
                 onClick={toggleHint}
