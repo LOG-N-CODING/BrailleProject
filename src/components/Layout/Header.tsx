@@ -27,12 +27,168 @@ const Header: React.FC = () => {
           </Link>
           {/* 오른쪽: Admin / Sign out */}
           <div className="flex items-center space-x-4">
+            {/* Navigation */}
+            <nav className="hidden lg:flex space-x-2 xl:space-x-4 2xl:space-x-8 ">
+              <Link
+                to="/"
+                className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+              >
+                Home
+              </Link>
+
+              {/* Learn Dropdown */}
+              <div
+                className="relative group"
+                onMouseEnter={() => setIsLearnDropdownOpen(true)}
+                onMouseLeave={() => setIsLearnDropdownOpen(false)}
+              >
+                <Link
+                  to="/learn"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                >
+                  Learn
+                  <svg
+                    className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Link>
+                <div
+                  className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                    isLearnDropdownOpen
+                      ? 'opacity-100 visible transform translate-y-0'
+                      : 'opacity-0 invisible transform translate-y-2'
+                  }`}
+                >
+                  <Link
+                    to="/learn/alphabet-mode"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Alphabet Learning
+                  </Link>
+                  <Link
+                    to="/learn/numbers"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Number Learning
+                  </Link>
+                  <Link
+                    to="/learn/practice"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Practice Mode
+                  </Link>
+                </div>
+              </div>
+
+              {/* Quiz Dropdown */}
+              <div
+                className="relative group"
+                onMouseEnter={() => setIsQuizDropdownOpen(true)}
+                onMouseLeave={() => setIsQuizDropdownOpen(false)}
+              >
+                <Link
+                  to="/quiz"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                >
+                  Quiz
+                  <svg
+                    className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Link>
+                <div
+                  className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                    isQuizDropdownOpen
+                      ? 'opacity-100 visible transform translate-y-0'
+                      : 'opacity-0 invisible transform translate-y-2'
+                  }`}
+                >
+                  <Link
+                    to="/quiz/image-to-braille"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Image-to-Braille
+                  </Link>
+                  <Link
+                    to="/quiz/math"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Math Quiz
+                  </Link>
+                </div>
+              </div>
+
+              {/* Game Dropdown */}
+              <div
+                className="relative group"
+                onMouseEnter={() => setIsGameDropdownOpen(true)}
+                onMouseLeave={() => setIsGameDropdownOpen(false)}
+              >
+                <Link
+                  to="/games"
+                  className="flex items-center text-gray-700 hover:text-primary-500 font-medium text-sm xl:text-base py-2"
+                >
+                  Game
+                  <svg
+                    className="ml-1 h-3 w-3 xl:h-4 xl:w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Link>
+                <div
+                  className={`absolute top-full left-0 w-48 xl:w-52 bg-white shadow-lg rounded-md py-2 z-50 transition-all duration-200 ${
+                    isGameDropdownOpen
+                      ? 'opacity-100 visible transform translate-y-0'
+                      : 'opacity-0 invisible transform translate-y-2'
+                  }`}
+                >
+                  <Link
+                    to="/games/typing-game"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Typing Game
+                  </Link>
+                  <Link
+                    to="/games/typing-sprint"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                  >
+                    Typing Sprint
+                  </Link>
+                </div>
+              </div>
+            </nav>
             <Link to="/admin" className="text-gray-700 hover:text-primary-500 font-medium">
               Admin
             </Link>
             <button onClick={signOut} className="text-gray-700 hover:text-primary-500 font-medium">
               Sign out
             </button>
+            <Link
+              to="/my"
+              className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-gray-700 hover:text-primary-500"
+            >
+              <span className="material-icons text-xl sm:text-2xl">person</span>
+            </Link>
           </div>
         </div>
 
@@ -122,6 +278,12 @@ const Header: React.FC = () => {
                   className="block text-lg font-medium text-gray-700 hover:text-primary-500"
                 >
                   AdminTest
+                </Link>
+                <Link
+                  to="/my"
+                  className="block text-lg font-medium text-gray-700 hover:text-primary-500"
+                >
+                  My Page
                 </Link>
                 <button
                   onClick={() => {

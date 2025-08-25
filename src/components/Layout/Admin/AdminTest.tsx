@@ -227,7 +227,7 @@ const wordsData: Record<string, string[]> = {
 };
 
 const phraseData: Record<string, string[]> = {
-  '일상 표현 (Daily)': [
+  Daily: [
     'get up',
     'go to bed',
     'take a shower',
@@ -239,7 +239,7 @@ const phraseData: Record<string, string[]> = {
     'get dressed',
     'come home',
   ],
-  '감정 & 상태 (Feelings)': [
+  Feelings: [
     'be tired',
     'feel sick',
     'be happy',
@@ -251,7 +251,7 @@ const phraseData: Record<string, string[]> = {
     'be nervous',
     'be surprised',
   ],
-  '시간/빈도 표현 (Time)': [
+  Time: [
     'every day',
     'in the morning',
     'at night',
@@ -263,7 +263,7 @@ const phraseData: Record<string, string[]> = {
     'all the time',
     'right now',
   ],
-  '학교생활 (School)': [
+  School: [
     'be late for school',
     'study hard',
     'take a test',
@@ -275,7 +275,7 @@ const phraseData: Record<string, string[]> = {
     'read a book',
     'write an essay',
   ],
-  '기초 동사구 (Basic)': [
+  Basic: [
     'turn on',
     'turn off',
     'look at',

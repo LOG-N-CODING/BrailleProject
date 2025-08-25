@@ -1,13 +1,21 @@
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { Outlet, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Footer from './components/Layout/Footer';
 import Header from './components/Layout/Header';
+import { ProtectedRoute } from './components/Layout/ProtectedRoute';
 import { BrailleDeviceFloatingButton } from './components/UI';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrailleDeviceProvider } from './contexts/BrailleDeviceContext';
+import app from './firebase/config';
 import AboutPage from './pages/AboutPage';
+import AdminPage from './pages/Adimin/AdminPage';
+import ForgotEmailPage from './pages/Auth/ForgotEmailPage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import LoginPage from './pages/Auth/LoginPage';
-import SignupPage from './pages/Auth/SignupPage';
 import MyPage from './pages/Auth/MyPage';
+import SignupPage from './pages/Auth/SignupPage';
 import ContactPage from './pages/ContactPage';
 import GameIndex from './pages/Games/GameIndex';
 import TypingGame from './pages/Games/TypingGame';
@@ -23,14 +31,7 @@ import WordLearning from './pages/Learn/WordLearning';
 import ImageToBraille from './pages/Quiz/ImageToBraille';
 import MathQuiz from './pages/Quiz/MathQuiz';
 import QuizIndex from './pages/Quiz/QuizIndex';
-import AdminPage from './pages/Adimin/AdminPage';
-import { ProtectedRoute } from './components/Layout/ProtectedRoute';
-import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import app from './firebase/config';
-import ForgotEmailPage from './pages/Auth/ForgotEmailPage';
-import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import ScrollToTop from './components/Layout/ScrollToTop';
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -108,9 +109,8 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* 관리자일 때는 숨기고, 일반 유저일 때만 노출 */}
-      {!isAdmin && <Footer />}
-      {!isAdmin && <BrailleDeviceFloatingButton />}
+      <Footer />
+      <BrailleDeviceFloatingButton />
     </div>
   );
 }
@@ -120,6 +120,7 @@ function App() {
     <AuthProvider>
       <BrailleDeviceProvider>
         <Router>
+          <ScrollToTop />
           <AppContent />
         </Router>
       </BrailleDeviceProvider>

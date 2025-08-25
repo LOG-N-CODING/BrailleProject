@@ -71,6 +71,7 @@ const WordLearning: React.FC = () => {
     if (selectedCategory) {
       generateRandomTargets();
     }
+    window.scrollTo(0, 0);
   }, [selectedCategory]);
 
   const loadUserProgress = async () => {
@@ -335,7 +336,7 @@ const WordLearning: React.FC = () => {
             )}
 
             {/* Debug Section - 개발 중에만 사용 */}
-            {user && (
+            {/* {user && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-blue-800 text-sm mb-2">🐛 Debug: Logged in as {user.email}</p>
                 <button
@@ -357,7 +358,7 @@ const WordLearning: React.FC = () => {
                   Test Firebase Save
                 </button>
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
