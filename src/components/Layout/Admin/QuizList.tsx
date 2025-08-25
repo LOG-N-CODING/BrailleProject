@@ -1,7 +1,6 @@
 // QuizList.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import React, { useState } from 'react';
 import {
   collection,
   addDoc,
@@ -10,7 +9,7 @@ import {
   doc as firestoreDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { storage, db } from '../../../firebase/config';
+import { db } from '../../../firebase/config';
 import { useCollection } from '../../../utils/useCollections';
 
 type Quiz = {
@@ -27,17 +26,14 @@ type Quiz = {
 
 export function QuizList() {
   const [quizType, setQuizType] = useState<'image' | 'math'>('image');
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [word, setWord] = useState('');
   const [formula, setFormula] = useState('');
   const [answer, setAnswer] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
   const [hint, setHint] = useState('');
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const quizzes = useCollection<Quiz>('quizzes');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,45 +42,27 @@ export function QuizList() {
   const [editFormula, setEditFormula] = useState('');
   const [editAnswer, setEditAnswer] = useState('');
   const [editDifficulty, setEditDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
-
-  // Preview selected image
-  useEffect(() => {
-    if (quizType === 'image' && file) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setPreview('');
-  }, [quizType, file]);
+  const [editImageUrl, setEditImageUrl] = useState('');
 
   // Handle add new quiz
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (quizType === 'image') {
-      if (!file || !word) return;
-      const ref = storageRef(storage, `quiz-images/${Date.now()}_${file.name}`);
-      const task = uploadBytesResumable(ref, file);
-      task.on(
-        'state_changed',
-        snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
-        console.error,
-        async () => {
-          const imageUrl = await getDownloadURL(task.snapshot.ref);
-          await addDoc(collection(db, 'quizzes'), {
-            type: 'image',
-            imageUrl,
-            word,
-            hint,
-            createdAt: serverTimestamp(),
-          });
-          // reset form
-          setFile(null);
-          setWord('');
-          setHint('');
-          setUploadProgress(0);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-      );
+      if (!imageUrl || !word) {
+        alert('Please provide both image URL and word.');
+        return;
+      }
+      await addDoc(collection(db, 'quizzes'), {
+        type: 'image',
+        imageUrl,
+        word,
+        hint,
+        createdAt: serverTimestamp(),
+      });
+      // reset form
+      setImageUrl('');
+      setWord('');
+      setHint('');
     } else {
       if (!formula || !answer) return;
       await addDoc(collection(db, 'quizzes'), {
@@ -114,6 +92,7 @@ export function QuizList() {
     setEditHint(q.hint || '');
     if (q.type === 'image') {
       setEditWord(q.word || '');
+      setEditImageUrl(q.imageUrl || '');
     } else {
       setEditFormula(q.formula || '');
       setEditAnswer(q.answer || '');
@@ -129,17 +108,19 @@ export function QuizList() {
     setEditFormula('');
     setEditAnswer('');
     setEditDifficulty('easy');
+    setEditImageUrl('');
   };
 
   // Save edits
   const saveEdit = async (q: Quiz) => {
     const updates: Partial<Quiz> = { hint: editHint };
     if (q.type === 'image') {
-      if (!editWord.trim()) {
-        alert('Word cannot be empty.');
+      if (!editWord.trim() || !editImageUrl.trim()) {
+        alert('Word and image URL cannot be empty.');
         return;
       }
       updates.word = editWord.trim();
+      updates.imageUrl = editImageUrl.trim();
     } else {
       if (!editFormula.trim() || !editAnswer.trim()) {
         alert('Formula and answer cannot be empty.');
@@ -185,21 +166,16 @@ export function QuizList() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block mb-1">Image File</label>
+                <label className="block mb-1">Image URL</label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={e => setFile(e.target.files?.[0] || null)}
-                  className="block w-full"
+                  type="url"
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full border rounded p-2"
                   required
                 />
               </div>
-              {uploadProgress > 0 && (
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 bg-blue-600" style={{ width: `${uploadProgress}%` }} />
-                </div>
-              )}
               <div>
                 <label className="block mb-1">Answer (Word)</label>
                 <input
@@ -224,8 +200,21 @@ export function QuizList() {
             </div>
 
             <div className="flex items-center justify-center">
-              {preview ? (
-                <img src={preview} alt="Preview" className="w-64 h-64 object-cover rounded" />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="w-64 h-64 object-cover rounded"
+                  onError={e => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML =
+                        '<div class="w-64 h-64 bg-gray-100 flex items-center justify-center rounded"><span class="text-gray-500">Invalid Image URL</span></div>';
+                    }
+                  }}
+                />
               ) : (
                 <div className="w-64 h-64 bg-gray-100 flex items-center justify-center rounded">
                   <span className="text-gray-500">Image Preview</span>
@@ -298,15 +287,43 @@ export function QuizList() {
               {editingId === q.id ? (
                 <div className="flex-1 space-y-2">
                   {q.type === 'image' ? (
-                    <div>
-                      <label className="block mb-1">Word</label>
-                      <input
-                        type="text"
-                        value={editWord}
-                        onChange={e => setEditWord(e.target.value)}
-                        className="w-full border rounded p-2"
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label className="block mb-1">Word</label>
+                        <input
+                          type="text"
+                          value={editWord}
+                          onChange={e => setEditWord(e.target.value)}
+                          className="w-full border rounded p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Image URL</label>
+                        <input
+                          type="url"
+                          value={editImageUrl}
+                          onChange={e => setEditImageUrl(e.target.value)}
+                          className="w-full border rounded p-2"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
+                      {editImageUrl && (
+                        <div>
+                          <label className="block mb-1">Preview</label>
+                          <img
+                            src={editImageUrl}
+                            alt="Preview"
+                            className="w-32 h-32 object-cover border rounded"
+                            onError={e => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                            onLoad={e => {
+                              e.currentTarget.style.display = 'block';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <>
                       <div>

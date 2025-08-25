@@ -9,7 +9,7 @@ interface DeleteUserData {
   uid: string;
 }
 
-export const deleteUserAndData = onCall<DeleteUserData>(async (request) => {
+export const deleteUserAndData = onCall<DeleteUserData>(async request => {
   // 1) 인증된 호출자인지
   if (!request.auth) {
     throw new HttpsError('unauthenticated', '로그인이 필요합니다.');
