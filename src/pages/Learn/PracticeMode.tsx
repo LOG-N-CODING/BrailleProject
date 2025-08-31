@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BRAILLE_ALPHABET, BRAILLE_NUMBERS, generateBraillePattern, parseInputBits, findCharacterFromDots, getDotsFromCharacter } from '../../utils/braille';
-import { SectionHeader } from '../../components/UI';
+import { SectionHeader, BrailleGuide } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
 

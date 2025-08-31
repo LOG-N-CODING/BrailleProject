@@ -5,7 +5,7 @@ import {
   generateBraillePattern,
   parseInputBits,
 } from '../../utils/braille';
-import { SectionHeader } from '../../components/UI';
+import { SectionHeader, BrailleGuide } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,6 +20,8 @@ const NumberLearning: React.FC = () => {
   const [userInput, setUserInput] = useState<number[]>([]);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [completedNumbers, setCompletedNumbers] = useState<Set<string>>(new Set());
+  const [isCorrect, setIsCorrect] = useState(false); // 정답 상태 추가
+  const [isIncorrect, setIsIncorrect] = useState(false); // 오답 상태 추가
 
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -164,45 +166,84 @@ const NumberLearning: React.FC = () => {
           console.log(`ℹ️ Number ${targetNumber} already completed - skipping save`);
         }
 
+        // 정답 상태 활성화
+        setIsCorrect(true);
+
         Swal.fire({
           toast: true,
           position: 'top-end',
           icon: 'success',
-          title: 'Correct!',
-          text: `${targetNumber} is correct!`,
+          title: '🎯 Excellent!',
+          text: `Number ${targetNumber} is perfect!`,
           showConfirmButton: false,
-          timer: 1500,
+          timer: 2000,
           timerProgressBar: true,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          customClass: {
+            popup: 'animate-bounce'
+          }
         });
 
         if (currentIndex + 1 >= targetNumbers.length) {
           setTimeout(() => {
             setGameCompleted(true);
+            setIsCorrect(false);
             // SweetAlert는 3초 후에 표시하여 Finish Button을 먼저 보여줌
             setTimeout(() => {
               Swal.fire({
                 icon: 'success',
-                title: 'Completed!',
-                text: `All numbers completed!`,
-                confirmButtonText: 'Practice Again',
-                cancelButtonText: 'Back to Learning Menu',
-                showCancelButton: true,
+                title: '🏆 Outstanding!',
+                text: `All numbers mastered perfectly!`,
+                confirmButtonText: '✨ Continue',
+                showCancelButton: false,
                 allowOutsideClick: true,
-              }).then(result => {
-                if (result.isConfirmed) {
-                  generateRandomTargets();
-                } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-                  navigate('/learn');
-                }
-              });
+                // confirmButtonText: '✨ Practice Again',
+                // cancelButtonText: 'Back to Learning Menu',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+              })
+              // .then(result => {
+              //   if (result.isConfirmed) {
+              //     generateRandomTargets();
+              //   } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+              //     navigate('/learn');
+              //   }
+              // });
             }, 1500);
           }, 1000);
         } else {
           setTimeout(() => {
             setCurrentIndex(prevIndex => prevIndex + 1);
             setUserInput([]);
-          }, 1000);
+            setIsCorrect(false); // 정답 상태 해제
+          }, 1500);
         }
+      } else if (inputDots.length > 0) {
+        // 틀렸을 때 피드백
+        setIsIncorrect(true);
+        
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'error',
+          title: '❌ Incorrect!',
+          text: `Try again for ${targetNumber}`,
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+          background: 'linear-gradient(135deg, #ffe8e8ff 0%, #ff3429ff 100%)',
+          color: 'white',
+          customClass: {
+            popup: 'animate-pulse'
+          }
+        });
+
+        // 1초 후 입력 초기화
+        setTimeout(() => {
+          setUserInput([]);
+          setIsIncorrect(false); // 오답 상태 해제
+        }, 1000);
       }
     },
     [targetNumbers, currentIndex, user, completedNumbers]
@@ -344,14 +385,48 @@ const NumberLearning: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <div className="text-sm text-gray-500 mb-2">Target Pattern:</div>
-              <div className="text-8xl font-mono text-blue-600">{targetBraille}</div>
+              <div className="text-sm text-gray-500 mb-4">Target Pattern:</div>
+              <div className="flex justify-center">
+                <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 shadow-sm">
+                  <BrailleGuide 
+                    activeDots={targetDots || []} 
+                    size="large" 
+                    showLabels={false}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mb-6">
-              <div className="text-sm text-gray-500 mb-2">Your Input:</div>
-              <div className="text-6xl font-mono text-green-600">
-                {userInput.length > 0 ? generateBraillePattern(userInput) : '⠀'}
+              <div className="text-sm text-gray-500 mb-4">Your Input:</div>
+              <div className="flex justify-center">
+                <div className={`p-4 rounded-2xl border-2 shadow-sm transition-all duration-500 ${
+                  isCorrect 
+                    ? 'bg-gradient-to-br from-green-100 to-emerald-100 border-green-400 ring-4 ring-green-200 animate-pulse' 
+                    : isIncorrect
+                    ? 'bg-gradient-to-br from-red-100 to-rose-100 border-red-400 ring-4 ring-red-200 animate-pulse'
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                  <BrailleGuide 
+                    activeDots={userInput} 
+                    size="large" 
+                    showLabels={false}
+                  />
+                  {isCorrect && (
+                    <div className="flex justify-center mt-2">
+                      <span className="text-green-600 text-sm font-bold animate-bounce">
+                        🎯 Excellent! 🎯
+                      </span>
+                    </div>
+                  )}
+                  {isIncorrect && (
+                    <div className="flex justify-center mt-2">
+                      <span className="text-red-600 text-sm font-bold animate-bounce">
+                        ❌ Try Again! ❌
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

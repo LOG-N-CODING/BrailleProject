@@ -164,119 +164,204 @@ const MathQuiz: React.FC = () => {
     initializeQuestion(questions);
   };
 
-  // 브레일 장치 입력 처리
-  useEffect(() => {
-    if (!isConnected) return;
-
-    const handleBrailleInput = (data: number) => {
-      const bits = parseInputBits(data);
-
-      if (bits.includes(-1)) {
-        handleBackspace();
-      } else if (bits.includes(-2)) {
-        handleNextPosition();
-      } else if (bits.length > 0) {
-        setActiveDots(bits);
-        const character = findCharacterFromDots(bits);
-        // 숫자만 허용
-        if (character && /^\d$/.test(character)) {
-          handleDigitInput(character);
-        }
-      }
-    };
-
-    setOnDataCallback(handleBrailleInput);
-  }, [isConnected]);
-
   // 숫자 입력 처리
-  const handleDigitInput = (digit: string) => {
+  const handleDigitInput = useCallback((digit: string) => {
     if (!currentQuestion || currentPosition >= currentQuestion.answer.toString().length) return;
 
     const correctDigit = currentQuestion.answer.toString()[currentPosition];
 
     if (digit === correctDigit) {
-      // 정답
-      const newDigitCards = [...digitCards];
-      newDigitCards[currentPosition].isGuessed = true;
-      setDigitCards(newDigitCards);
-
-      const newGuessedAnswer = guessedAnswer + digit;
-      setGuessedAnswer(newGuessedAnswer);
+      // 정답 - 카드 상태 업데이트
+      setDigitCards(prevCards => {
+        const newCards = [...prevCards];
+        if (newCards[currentPosition]) {
+          newCards[currentPosition] = {
+            ...newCards[currentPosition],
+            isGuessed: true
+          };
+        }
+        return newCards;
+      });
 
       // 다음 위치로 이동
-      setCurrentPosition(currentPosition + 1);
-      setActiveDots([]);
+      setCurrentPosition(prev => prev + 1);
 
-      // 답 완성 체크
-      if (newGuessedAnswer === currentQuestion.answer.toString()) {
-        handleQuestionComplete();
-      }
+      // 추측한 답안 업데이트
+      setGuessedAnswer(prev => {
+        const newAnswer = prev + digit;
+        
+        // 답 완성 체크
+        if (newAnswer === currentQuestion.answer.toString()) {
+          // 문제 완성 처리를 직접 수행
+          setTimeout(() => {
+            setIsTimerActive(false);
+            setScore(prevScore => prevScore + 1);
+            setTotalQuestions(prevTotal => prevTotal + 1);
+            
+            // Alert 없이 바로 다음 문제로 이동
+            initializeQuestion();
+          }, 500); // 카드 업데이트를 보여주기 위한 짧은 딜레이
+        }
+        
+        return newAnswer;
+      });
+
+      // 정답 토스트 표시
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: '🎉 Correct!',
+        text: `Perfect!`,
+        showConfirmButton: false,
+        showCloseButton: true,
+        timer: 2000,
+        timerProgressBar: true,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        customClass: {
+          popup: 'animate-bounce',
+          closeButton: 'swal2-toast-success-close'
+        }
+      });
+
+      // activeDots 초기화
+      setActiveDots([]);
+      
     } else {
       // 오답
       Swal.fire({
-        title: 'Incorrect!',
-        text: `The correct number is '${correctDigit}'.`,
+        toast: true,
+        position: 'top-end',
         icon: 'error',
-        timer: 2000,
+        title: '❌ Incorrect!',
+        text: `Try again for ${correctDigit}`,
         showConfirmButton: false,
+        showCloseButton: true,
+        timer: 3000,
+        timerProgressBar: true,
+        background: 'linear-gradient(135deg, #ffe8e8ff 0%, #ff3429ff 100%)',
+        color: 'white',
+        customClass: {
+          popup: 'animate-pulse',
+          closeButton: 'swal2-toast-error-close'
+        }
       });
       setActiveDots([]);
     }
-  };
+  }, [currentQuestion, currentPosition, initializeQuestion]);
 
   // 백스페이스 처리
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (currentPosition > 0) {
-      const newPosition = currentPosition - 1;
-      const newDigitCards = [...digitCards];
-      newDigitCards[newPosition].isGuessed = false;
-      setDigitCards(newDigitCards);
+      // 이전 위치로 이동
+      setCurrentPosition(prev => {
+        const newPosition = prev - 1;
+        
+        // 카드 상태 업데이트
+        setDigitCards(prevCards => {
+          const newCards = [...prevCards];
+          if (newCards[newPosition]) {
+            newCards[newPosition] = {
+              ...newCards[newPosition],
+              isGuessed: false
+            };
+          }
+          return newCards;
+        });
+        
+        return newPosition;
+      });
 
-      setCurrentPosition(newPosition);
-      setGuessedAnswer(guessedAnswer.slice(0, -1));
+      // 추측한 답안에서 마지막 문자 제거
+      setGuessedAnswer(prev => prev.slice(0, -1));
       setActiveDots([]);
     }
-  };
+  }, [currentPosition]);
 
   // 다음 위치로 이동
-  const handleNextPosition = () => {
-    if (currentPosition < digitCards.length - 1) {
-      setCurrentPosition(currentPosition + 1);
-      setActiveDots([]);
-    }
-  };
-
-  // 문제 완성 처리
-  const handleQuestionComplete = () => {
-    setIsTimerActive(false);
-    setScore(score + 1);
-    setTotalQuestions(totalQuestions + 1);
-
-    const accuracy = Math.round(((score + 1) / (totalQuestions + 1)) * 100);
-
-    Swal.fire({
-      title: 'Correct! 🎉',
-      html: `
-        <div class="text-center">
-          <p class="text-lg mb-2">Answer: <strong>${currentQuestion?.answer}</strong></p>
-          <p class="text-blue-600">Current accuracy: ${accuracy}%</p>
-          <p class="text-sm text-gray-600 mt-2">Time remaining: ${timeLeft} seconds</p>
-        </div>
-      `,
-      icon: 'success',
-      showCancelButton: true,
-      confirmButtonText: 'Next Question',
-      cancelButtonText: 'End Quiz',
-      confirmButtonColor: '#3B82F6',
-      cancelButtonColor: '#6B7280',
-    }).then(result => {
-      if (result.isConfirmed) {
-        initializeQuestion();
-      } else {
-        showFinalResults();
+  const handleNextPosition = useCallback(() => {
+    setCurrentPosition(prev => {
+      if (prev < digitCards.length - 1) {
+        setActiveDots([]);
+        return prev + 1;
       }
+      return prev;
     });
-  };
+  }, [digitCards.length]);
+
+  // 브레일 장치 입력 처리
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const handleBrailleInput = (data: number) => {
+      console.log('=== Braille Input Debug ===');
+      console.log('Raw data received:', data);
+      
+      const bits = parseInputBits(data);
+      console.log('Parsed bits:', bits);
+
+      if (bits.includes(-1)) {
+        console.log('Backspace detected');
+        handleBackspace();
+      } else if (bits.includes(-2)) {
+        console.log('Next position detected');
+        handleNextPosition();
+      } else if (bits.length > 0) {
+        console.log('Setting activeDots to:', bits);
+        setActiveDots(bits);
+        
+        const character = findCharacterFromDots(bits);
+        console.log('Character found from dots:', character);
+        console.log('Is digit test result:', character && /^\d$/.test(character));
+        
+        // 숫자만 허용 - 점자 패턴을 직접 숫자로 매핑
+        if (character && /^\d$/.test(character)) {
+          console.log('Valid digit found, calling handleDigitInput with:', character);
+          handleDigitInput(character);
+        } else if (character) {
+          // 문자가 인식되었지만 숫자가 아닌 경우, 점자 패턴을 직접 숫자로 변환 시도
+          console.log('Character is not digit, trying to convert braille pattern to number');
+          
+          // 점자 패턴을 문자열로 변환해서 숫자 매핑 확인
+          const brailleToNumber: Record<string, string> = {
+            '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+            '6': '6', '7': '7', '8': '8', '9': '9', '0': '0'
+          };
+          
+          // BRAILLE_NUMBERS에서 현재 dots와 일치하는 숫자 찾기
+          let matchedNumber: string | null = null;
+          for (const [number, numberDots] of Object.entries(BRAILLE_NUMBERS)) {
+            if (JSON.stringify(numberDots.sort()) === JSON.stringify(bits.sort())) {
+              matchedNumber = number;
+              break;
+            }
+          }
+          
+          console.log('Matched number from BRAILLE_NUMBERS:', matchedNumber);
+          
+          if (matchedNumber) {
+            console.log('Found matching number, calling handleDigitInput with:', matchedNumber);
+            handleDigitInput(matchedNumber);
+          } else {
+            console.log('No matching number found for bits:', bits);
+          }
+        } else {
+          console.log('Character is not a valid digit or is null');
+        }
+      } else {
+        console.log('No valid bits found');
+      }
+      console.log('=== End Debug ===');
+    };
+
+    setOnDataCallback(handleBrailleInput);
+    
+    // 컴포넌트가 언마운트될 때 콜백 정리
+    return () => {
+      setOnDataCallback(null);
+    };
+  }, [isConnected, setOnDataCallback, handleDigitInput, handleBackspace, handleNextPosition]);
 
   // 최종 결과 표시
   const showFinalResults = () => {
@@ -304,9 +389,7 @@ const MathQuiz: React.FC = () => {
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
-            <p class="text-2xl font-bold text-blue-600 mb-2">${score + 1} / ${
-        totalQuestions + 1
-      }</p>
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
             <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
         </div>
@@ -518,7 +601,12 @@ const MathQuiz: React.FC = () => {
             >
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
                 <p className="text-blue-800 text-center">
-                  Input Braille: {generateBraillePattern(activeDots)} ({activeDots.join(', ')})
+                  Input Braille: {generateBraillePattern(activeDots)} 
+                  <span className="ml-2">({activeDots.join(', ')})</span>
+                  <br />
+                  <span className="text-sm">
+                    Character: {findCharacterFromDots(activeDots) || 'None'}
+                  </span>
                 </p>
               </div>
             </motion.div>

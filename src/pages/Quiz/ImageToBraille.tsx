@@ -128,7 +128,7 @@ const ImageToBraille: React.FC = () => {
         <div class="text-center">
           <p class="text-lg mb-4">${message}</p>
           <div class="bg-gray-100 p-4 rounded-lg">
-            <p class="text-2xl font-bold text-blue-600 mb-2">${score + 1} / ${totalQuizzes + 1}</p>
+            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuizzes}</p>
             <p class="text-gray-600">Accuracy: ${accuracy}%</p>
           </div>
         </div>`,
@@ -139,31 +139,6 @@ const ImageToBraille: React.FC = () => {
       confirmButtonColor: '#3B82F6',
     }).then(result => {
       if (result.isConfirmed) restartQuiz();
-    });
-  };
-
-  // 5) 정답 처리
-  const handleQuizComplete = () => {
-    setScore(s => s + 1);
-    setTotalQuizzes(t => t + 1);
-    const accuracy = Math.round(((score + 1) / (totalQuizzes + 1)) * 100);
-
-    Swal.fire({
-      title: 'Correct! 🎉',
-      html: `
-        <div class="text-center">
-          <p class="text-lg mb-2">You got '<strong>${currentQuiz?.answer}</strong>' correct!</p>
-          <p class="text-blue-600">Current accuracy: ${accuracy}%</p>
-        </div>`,
-      icon: 'success',
-      showCancelButton: true,
-      confirmButtonText: 'Next Question',
-      cancelButtonText: 'End Quiz',
-      confirmButtonColor: '#3B82F6',
-      cancelButtonColor: '#6B7280',
-    }).then(result => {
-      if (result.isConfirmed) onNextQuestion();
-      else showFinalResults();
     });
   };
 
@@ -183,50 +158,98 @@ const ImageToBraille: React.FC = () => {
     });
   };
 
-  // 7) 문자 입력 처리 (Braille & 수동)
-  useEffect(() => {
-    if (!isConnected) return;
-    const cb = (data: number) => {
-      const bits = parseInputBits(data);
-      if (bits.includes(-1)) handleBackspace();
-      else if (bits.includes(-2)) onNextQuestion();
-      else if (bits.length > 0) {
-        setActiveDots(bits);
-        const ch = findCharacterFromDots(bits);
-        if (ch) handleCharacterInput(ch.toUpperCase());
-      }
-    };
-    setOnDataCallback(cb);
-  }, [isConnected, onNextQuestion, setOnDataCallback]);
-
-  const handleCharacterInput = (character: string) => {
-    if (!currentQuiz || currentPosition >= currentQuiz.answer.length) return;
-    const correct = currentQuiz.answer[currentPosition];
-    if (character === correct) {
-      setLetterCards(cards => {
-        const nc = [...cards];
-        nc[currentPosition].isGuessed = true;
-        return nc;
+  // 문자 입력 처리
+  const handleCharacterInput = useCallback((character: string) => {
+    if (!currentQuiz || currentPosition >= currentQuiz.answer.length) {
+      return;
+    }
+    
+    const correct = currentQuiz.answer[currentPosition].toUpperCase();
+    
+    if (character.toUpperCase() === correct) {
+      // 현재 위치의 카드를 맞춘 상태로 업데이트
+      setLetterCards(prevCards => {
+        const newCards = [...prevCards];
+        if (newCards[currentPosition]) {
+          newCards[currentPosition] = {
+            ...newCards[currentPosition],
+            isGuessed: true
+          };
+        }
+        return newCards;
       });
-      setGuessedAnswer(a => a + character);
-      setCurrentPosition(p => p + 1);
+      
+      // 다음 위치로 이동
+      setCurrentPosition(prev => prev + 1);
+      
+      // 추측한 답안 업데이트
+      setGuessedAnswer(prev => {
+        const newAnswer = prev + character.toUpperCase();
+        
+        // 답이 완성되었는지 확인
+        if (newAnswer.toUpperCase() === currentQuiz.answer.toUpperCase()) {
+          // 퀴즈 완성 처리를 직접 수행
+          setTimeout(() => {
+            const newScore = score + 1;
+            const newTotal = totalQuizzes + 1;
+            setScore(newScore);
+            setTotalQuizzes(newTotal);
+            
+            // Alert 없이 바로 다음 문제로 이동
+            onNextQuestion();
+          }, 500); // 카드 업데이트를 보여주기 위한 짧은 딜레이
+        }
+        
+        return newAnswer;
+      });
+
+
+      // 정답 토스트 표시
+      const targetLetter = currentQuiz.answer[currentPosition - 1];
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: '🎉 Correct!',
+        text: `Perfect!`,
+        showConfirmButton: false,
+        showCloseButton: true,
+        timer: 2000,
+        timerProgressBar: true,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        customClass: {
+          popup: 'animate-bounce',
+          closeButton: 'swal2-toast-success-close'
+        }
+      });
+      
+      // activeDots 초기화
       setActiveDots([]);
-      if (guessedAnswer + character === currentQuiz.answer) {
-        handleQuizComplete();
-      }
+      
     } else {
       Swal.fire({
-        title: 'Incorrect!',
-        text: `Correct is '${correct}'`,
+        toast: true,
+        position: 'top-end',
         icon: 'error',
-        timer: 2000,
+        title: '❌ Incorrect!',
+        text: `Try again for ${correct}`,
         showConfirmButton: false,
+        showCloseButton: true,
+        timer: 3000,
+        timerProgressBar: true,
+        background: 'linear-gradient(135deg, #ffe8e8ff 0%, #ff3429ff 100%)',
+        color: 'white',
+        customClass: {
+          popup: 'animate-pulse',
+          closeButton: 'swal2-toast-error-close'
+        }
       });
       setActiveDots([]);
     }
-  };
+  }, [currentQuiz, currentPosition, score, totalQuizzes, onNextQuestion, restartQuiz]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (currentPosition > 0) {
       setCurrentPosition(p => p - 1);
       setLetterCards(cards => {
@@ -237,7 +260,28 @@ const ImageToBraille: React.FC = () => {
       setGuessedAnswer(a => a.slice(0, -1));
       setActiveDots([]);
     }
-  };
+  }, [currentPosition]);
+
+  // 7) 문자 입력 처리 (Braille & 수동)
+  useEffect(() => {
+    if (!isConnected) return;
+    const cb = (data: number) => {
+      const bits = parseInputBits(data);
+      
+      if (bits.includes(-1)) {
+        handleBackspace();
+      } else if (bits.includes(-2)) {
+        onNextQuestion();
+      } else if (bits.length > 0) {
+        setActiveDots(bits);
+        const ch = findCharacterFromDots(bits);
+        if (ch && /^[A-Za-z]$/.test(ch)) {
+          handleCharacterInput(ch.toUpperCase());
+        }
+      }
+    };
+    setOnDataCallback(cb);
+  }, [isConnected, onNextQuestion, setOnDataCallback, handleCharacterInput, handleBackspace]);
 
   // 8) 수동 입력
   const handleManualInput = (letter: string) => {

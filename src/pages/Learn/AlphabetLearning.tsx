@@ -6,7 +6,7 @@ import {
   parseInputBits,
   findCharacterFromDots,
 } from '../../utils/braille';
-import { SectionHeader } from '../../components/UI';
+import { SectionHeader, BrailleGuide } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -18,6 +18,8 @@ const AlphabetLearning: React.FC = () => {
   const [userInput, setUserInput] = useState<number[]>([]);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [isCorrect, setIsCorrect] = useState(false); // 정답 상태 추가
+  const [isIncorrect, setIsIncorrect] = useState(false); // 오답 상태 추가
 
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -47,6 +49,9 @@ const AlphabetLearning: React.FC = () => {
       const targetDots = getDotsFromCharacter(targetLetter);
 
       if (targetDots && JSON.stringify(inputDots.sort()) === JSON.stringify(targetDots.sort())) {
+        // 정답 상태 활성화
+        setIsCorrect(true);
+
         // 알파벳 발음
         const utterance = new SpeechSynthesisUtterance(targetLetter);
         utterance.rate = 0.8;
@@ -58,21 +63,31 @@ const AlphabetLearning: React.FC = () => {
           toast: true,
           position: 'top-end',
           icon: 'success',
-          title: 'Correct!',
-          text: `${targetLetter} is correct!`,
+          title: '🎉 Correct!',
+          text: `${targetLetter} is perfect!`,
           showConfirmButton: false,
-          timer: 1500,
+          showCloseButton: true,
+          timer: 2000,
           timerProgressBar: true,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          customClass: {
+            popup: 'animate-bounce',
+            closeButton: 'swal2-toast-success-close'
+          }
         });
 
         if (currentIndex + 1 >= targetLetters.length) {
           setTimeout(() => {
             setGameCompleted(true);
+            setIsCorrect(false);
             Swal.fire({
               icon: 'success',
-              title: 'Completed!',
-              text: `All letters completed!`,
-              confirmButtonText: 'Practice Again',
+              title: '🏆 Amazing!',
+              text: `All letters completed perfectly!`,
+              confirmButtonText: '✨ Practice Again',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
             }).then(() => {
               generateRandomTargets();
             });
@@ -81,8 +96,36 @@ const AlphabetLearning: React.FC = () => {
           setTimeout(() => {
             setCurrentIndex(prevIndex => prevIndex + 1);
             setUserInput([]);
-          }, 1000);
+            setIsCorrect(false); // 정답 상태 해제
+          }, 1500);
         }
+      } else if (inputDots.length > 0) {
+        // 틀렸을 때 피드백
+        setIsIncorrect(true);
+        
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'error',
+          title: '❌ Incorrect!',
+          text: `Try again for ${targetLetter}`,
+          showConfirmButton: false,
+          showCloseButton: true,
+          timer: 3000,
+          timerProgressBar: true,
+          background: 'linear-gradient(135deg, #ffe8e8ff 0%, #ff3429ff 100%)',
+          color: 'white',
+          customClass: {
+            popup: 'animate-pulse',
+            closeButton: 'swal2-toast-error-close'
+          }
+        });
+
+        // 1초 후 입력 초기화
+        setTimeout(() => {
+          setUserInput([]);
+          setIsIncorrect(false); // 오답 상태 해제
+        }, 1000);
       }
     },
     [targetLetters, currentIndex]
@@ -184,14 +227,48 @@ const AlphabetLearning: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <div className="text-sm text-gray-500 mb-2">Target Pattern:</div>
-              <div className="text-8xl font-mono text-blue-600">{targetBraille}</div>
+              <div className="text-sm text-gray-500 mb-4">Target Pattern:</div>
+              <div className="flex justify-center">
+                <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 shadow-sm">
+                  <BrailleGuide 
+                    activeDots={targetDots || []} 
+                    size="large" 
+                    showLabels={false}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mb-6">
-              <div className="text-sm text-gray-500 mb-2">Your Input:</div>
-              <div className="text-6xl font-mono text-green-600">
-                {userInput.length > 0 ? generateBraillePattern(userInput) : '⠀'}
+              <div className="text-sm text-gray-500 mb-4">Your Input:</div>
+              <div className="flex justify-center">
+                <div className={`p-4 rounded-2xl border-2 shadow-sm transition-all duration-500 ${
+                  isCorrect 
+                    ? 'bg-gradient-to-br from-green-100 to-emerald-100 border-green-400 ring-4 ring-green-200 animate-pulse' 
+                    : isIncorrect
+                    ? 'bg-gradient-to-br from-red-100 to-rose-100 border-red-400 ring-4 ring-red-200 animate-pulse'
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                  <BrailleGuide 
+                    activeDots={userInput} 
+                    size="large" 
+                    showLabels={false}
+                  />
+                  {isCorrect && (
+                    <div className="flex justify-center mt-2">
+                      <span className="text-green-600 text-sm font-bold animate-bounce">
+                        ✨ Perfect! ✨
+                      </span>
+                    </div>
+                  )}
+                  {isIncorrect && (
+                    <div className="flex justify-center mt-2">
+                      <span className="text-red-600 text-sm font-bold animate-bounce">
+                        ❌ Try Again! ❌
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
