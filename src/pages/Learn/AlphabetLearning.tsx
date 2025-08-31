@@ -9,10 +9,13 @@ import {
 import { SectionHeader, BrailleGuide } from '../../components/UI';
 import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { updateLetterProgress, getUserLearningProgress } from '../../utils/learningProgress';
 import Swal from 'sweetalert2';
 
 const AlphabetLearning: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [targetLetters, setTargetLetters] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState<number[]>([]);
@@ -20,6 +23,7 @@ const AlphabetLearning: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isCorrect, setIsCorrect] = useState(false); // 정답 상태 추가
   const [isIncorrect, setIsIncorrect] = useState(false); // 오답 상태 추가
+  const [completedLetters, setCompletedLetters] = useState<Set<string>>(new Set());
 
   // 점자 디바이스 관련 state
   const { isConnected, setOnDataCallback } = useBrailleDevice();
@@ -29,9 +33,45 @@ const AlphabetLearning: React.FC = () => {
   const letters = Object.keys(BRAILLE_ALPHABET);
 
   useEffect(() => {
+    // 사용자의 학습 진행도 로드
+    if (user) {
+      loadUserProgress();
+    }
+  }, [user]);
+
+  useEffect(() => {
     // 게임 시작 시 랜덤 알파벳 10개 생성
     generateRandomTargets();
   }, []);
+
+  const loadUserProgress = async () => {
+    if (!user) {
+      console.log('🔐 No user logged in - skipping progress load');
+      return;
+    }
+
+    console.log('📊 Loading user progress for:', user.email);
+
+    try {
+      const progress = await getUserLearningProgress(user);
+      console.log('📈 Progress loaded:', progress);
+
+      const completed = new Set<string>();
+
+      // 완료된 알파벳들을 Set에 추가
+      Object.entries(progress.letters).forEach(([letter, status]) => {
+        if (status === 1) {
+          completed.add(letter);
+          console.log(`✅ Letter ${letter} is already completed`);
+        }
+      });
+
+      setCompletedLetters(completed);
+      console.log(`🎯 Total completed letters: ${completed.size}/26`);
+    } catch (error) {
+      console.error('❌ Failed to load user progress:', error);
+    }
+  };
 
   const generateRandomTargets = () => {
     const shuffled = [...letters].sort(() => Math.random() - 0.5);
@@ -42,13 +82,23 @@ const AlphabetLearning: React.FC = () => {
   };
 
   const checkAnswer = useCallback(
-    (inputDots: number[]) => {
+    async (inputDots: number[]) => {
       if (targetLetters.length === 0 || inputDots.length === 0) return;
 
       const targetLetter = targetLetters[currentIndex];
       const targetDots = getDotsFromCharacter(targetLetter);
 
+      console.log('🔍 Checking letter answer:', {
+        targetLetter,
+        inputDots,
+        targetDots,
+        user: user ? user.email : 'not logged in',
+        alreadyCompleted: completedLetters.has(targetLetter),
+      });
+
       if (targetDots && JSON.stringify(inputDots.sort()) === JSON.stringify(targetDots.sort())) {
+        console.log('✅ Correct letter answer!');
+        
         // 정답 상태 활성화
         setIsCorrect(true);
 
@@ -58,6 +108,27 @@ const AlphabetLearning: React.FC = () => {
         utterance.pitch = 1;
         utterance.lang = 'en-US';
         speechSynthesis.speak(utterance);
+
+        // 학습 진행도 저장 (로그인한 사용자만)
+        if (user && !completedLetters.has(targetLetter)) {
+          console.log('💾 Attempting to save letter progress to Firestore...');
+          try {
+            await updateLetterProgress(user, targetLetter);
+
+            // 로컬 상태 업데이트
+            setCompletedLetters(prev => new Set([...prev, targetLetter]));
+
+            console.log(
+              `🎉 Letter "${targetLetter}" progress saved to database successfully!`
+            );
+          } catch (error) {
+            console.error('❌ Failed to save letter progress:', error);
+          }
+        } else if (!user) {
+          console.log('⚠️ User not logged in - skipping database save');
+        } else if (completedLetters.has(targetLetter)) {
+          console.log(`ℹ️ Letter "${targetLetter}" already completed - skipping save`);
+        }
 
         Swal.fire({
           toast: true,
@@ -128,7 +199,7 @@ const AlphabetLearning: React.FC = () => {
         }, 1000);
       }
     },
-    [targetLetters, currentIndex]
+    [targetLetters, currentIndex, user, completedLetters, generateRandomTargets]
   );
 
   // 시리얼 디바이스 데이터 수신 처리
@@ -190,6 +261,13 @@ const AlphabetLearning: React.FC = () => {
           <SectionHeader title="Alphabet Learning (A–Z)" />
           <p className="text-gray-600 mb-6">Match the braille pattern for each letter</p>
 
+          {/* Login Status */}
+          {!user && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
+            </div>
+          )}
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
             <div
@@ -199,6 +277,11 @@ const AlphabetLearning: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600">
             Progress: {currentIndex + 1} of {targetLetters.length}
+            {user && (
+              <span className="ml-4 text-blue-600">
+                • {completedLetters.size}/26 letters mastered
+              </span>
+            )}
           </div>
         </div>
 
@@ -338,22 +421,31 @@ const AlphabetLearning: React.FC = () => {
             {letters.map((letter, index) => {
               const dots = getDotsFromCharacter(letter);
               const braillePattern = dots ? generateBraillePattern(dots) : '';
-              const isCompleted = targetLetters.slice(0, currentIndex).includes(letter);
+              const isSessionCompleted = targetLetters.slice(0, currentIndex).includes(letter);
               const isCurrent = targetLetters[currentIndex] === letter;
+              const isLearned = completedLetters.has(letter); // Firebase에서 로드한 완료 상태
 
               return (
                 <div
                   key={letter}
-                  className={`p-3 rounded-lg text-center transition-all border-2 min-w-[60px] ${
+                  className={`p-3 rounded-lg text-center transition-all border-2 min-w-[60px] relative ${
                     isCurrent
                       ? 'bg-blue-100 border-blue-500 scale-105'
-                      : isCompleted
+                      : isLearned
+                      ? 'bg-yellow-100 border-yellow-500' // 학습 완료된 알파벳은 노란색
+                      : isSessionCompleted
                       ? 'bg-green-100 border-green-500'
                       : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
                   <div className="font-bold text-lg text-gray-800">{letter}</div>
                   <div className="text-2xl font-mono text-blue-600">{braillePattern}</div>
+                  {/* 학습 완료된 알파벳에 체크 표시 */}
+                  {isLearned && (
+                    <div className="absolute -top-1 -right-1 bg-yellow-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                      ✓
+                    </div>
+                  )}
                 </div>
               );
             })}
