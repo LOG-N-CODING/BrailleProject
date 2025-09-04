@@ -29,6 +29,7 @@ const PhraseLearning: React.FC = () => {
   const { isConnected, setOnDataCallback } = useBrailleDevice();
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [showBrailleKeyboard, setShowBrailleKeyboard] = useState(false);
+  const [spaceEffect, setSpaceEffect] = useState(false); // 스페이스 입력 효과
 
   const [phrasesData, setPhrasesData] = useState<Record<string, string[]>>({});
   const categories = Object.keys(phrasesData);
@@ -307,6 +308,9 @@ const PhraseLearning: React.FC = () => {
   };
 
   const handleSpaceInput = () => {
+    // 스페이스 입력 시각적 효과
+    setSpaceEffect(true);
+    
     const newInput = userInput + ' ';
     setUserInput(newInput);
 
@@ -314,6 +318,11 @@ const PhraseLearning: React.FC = () => {
     setTimeout(() => {
       checkAnswer(newInput);
     }, 100);
+
+    // 효과 제거
+    setTimeout(() => {
+      setSpaceEffect(false);
+    }, 300);
   };
 
   const handleBackspace = () => {
@@ -330,14 +339,14 @@ const PhraseLearning: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="max-w-3xl mx-auto text-center my-8">
-            <SectionHeader title="Phrases - Choose Category" />
+            <SectionHeader title="Phrases" />
             <p className="text-gray-600 mb-6">Select a category to start the phrases learning</p>
 
             {/* Login Status */}
             {!user && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p className="text-yellow-800 text-sm">
-                  📚 Sign in to save your learning progress!
+                  📚 Sign In to save your learning progress!
                 </p>
               </div>
             )}
@@ -420,7 +429,7 @@ const PhraseLearning: React.FC = () => {
           {/* Login Status */}
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
+              <p className="text-yellow-800 text-sm">📚 Sign In to save your learning progress!</p>
             </div>
           )}
 
@@ -482,8 +491,26 @@ const PhraseLearning: React.FC = () => {
 
             <div className="mb-6">
               <div className="text-sm text-gray-500 mb-2">Your Input:</div>
-              <div className="text-2xl font-mono text-teal-600 min-h-[3rem] border-2 border-dashed border-gray-300 rounded-lg p-4">
-                {userInput.toUpperCase() || 'Type here...'}
+              <div className={`text-2xl font-mono text-teal-600 min-h-[3rem] border-2 border-dashed rounded-lg p-4 transition-all duration-300 ${
+                spaceEffect 
+                  ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
+                  : 'border-gray-300'
+              }`}>
+                {userInput.split('').map((char, index) => (
+                  <span key={index}>
+                    {char === ' ' ? (
+                      <span className={`inline-block w-4 h-8 mx-1 rounded transition-all duration-200 ${
+                        spaceEffect && index === userInput.length - 1
+                          ? 'bg-blue-400 shadow-md animate-pulse'
+                          : 'bg-gray-200'
+                      }`}>
+                        &nbsp;
+                      </span>
+                    ) : (
+                      char.toUpperCase()
+                    )}
+                  </span>
+                )) || 'Type here...'}
               </div>
             </div>
           </div>
@@ -600,7 +627,7 @@ const PhraseLearning: React.FC = () => {
         </div>
 
         {/* Finish Button */}
-        {gameCompleted && (
+        {/* {gameCompleted && (
           <div className="text-center mt-8 space-y-4">
             <div className="text-2xl font-bold text-green-600 mb-4">
               🎉 Congratulations! All phrases completed! 🎉
@@ -620,7 +647,7 @@ const PhraseLearning: React.FC = () => {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="max-w-3xl mx-auto text-center my-6">
           <button

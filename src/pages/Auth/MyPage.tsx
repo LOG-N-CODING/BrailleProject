@@ -713,9 +713,9 @@ const MyPage: React.FC = () => {
           </div>
         </div>
 
-        {/* View Scores Section */}
+        {/* View Score Section */}
         <div className="my-20">
-          <SectionHeader title="View scores" className="mb-8" />
+          <SectionHeader title="View Score" className="mb-8" />
 
           {/* Score Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mt-20 mb-40">
@@ -1052,7 +1052,7 @@ const MyPage: React.FC = () => {
       <div className="container mx-auto px-4 py-6 sm:py-8 w-full max-w-full">
         {/* Header Section */}
         <div className="text-center mb-6 sm:mb-8">
-          <SectionHeader title="My page" className="mb-3 sm:mb-4" />
+          <SectionHeader title="My Page" className="mb-3 sm:mb-4" />
 
           {/* Tab Navigation */}
           <div className="flex justify-center overflow-x-auto">

@@ -138,7 +138,13 @@ const WordLearning: React.FC = () => {
       alreadyCompleted: completedWords[selectedCategory]?.has(targetWord),
     });
 
-    if (currentInput.toLowerCase() === targetWord.toLowerCase()) {
+    // 현재까지 입력한 글자 수만큼만 비교
+    const inputLength = currentInput.length;
+    const targetPrefix = targetWord.slice(0, inputLength).toLowerCase();
+    const currentInputLower = currentInput.toLowerCase();
+
+    // 완전히 정답인 경우
+    if (currentInputLower === targetWord.toLowerCase()) {
       console.log('✅ Correct word answer!');
 
       // 단어 발음 - 개선된 버전
@@ -242,6 +248,36 @@ const WordLearning: React.FC = () => {
           setUserInput('');
         }, 1000);
       }
+    } else if (inputLength > 0) {
+      // 현재까지 입력한 부분이 올바른지 확인
+      if (currentInputLower === targetPrefix) {
+        // 지금까지는 맞게 입력했음 - 아무것도 안함
+        console.log('✓ Correct so far:', currentInputLower);
+      } else {
+        // 틀린 글자를 입력했음 - toast 표시
+        console.log('❌ Incorrect input detected!');
+        
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'error',
+          title: '❌ Wrong letter!',
+          text: `Should be "${targetPrefix}" not "${currentInputLower}"`,
+          showConfirmButton: false,
+          showCloseButton: true,
+          timer: 2000,
+          timerProgressBar: true,
+          background: 'linear-gradient(135deg, #ffe8e8ff 0%, #ff3429ff 100%)',
+          color: 'white',
+          customClass: {
+            popup: 'animate-pulse',
+            closeButton: 'swal2-toast-error-close'
+          }
+        });
+        
+        // 틀린 입력 초기화
+        // setUserInput('');
+      }
     }
   };
 
@@ -323,14 +359,14 @@ const WordLearning: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="max-w-3xl mx-auto text-center my-8">
-            <SectionHeader title="Words - Choose Category" />
+            <SectionHeader title="Words" />
             <p className="text-gray-600 mb-6">Select a category to start the words learning</p>
 
             {/* Login Status */}
             {!user && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p className="text-yellow-800 text-sm">
-                  📚 Sign in to save your learning progress!
+                  📚 Sign In to save your learning progress!
                 </p>
               </div>
             )}
@@ -412,7 +448,7 @@ const WordLearning: React.FC = () => {
           {/* Login Status */}
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
+              <p className="text-yellow-800 text-sm">📚 Sign In to save your learning progress!</p>
             </div>
           )}
 
@@ -577,7 +613,7 @@ const WordLearning: React.FC = () => {
         </div>
 
         {/* Finish Button */}
-        {gameCompleted && (
+        {/* {gameCompleted && (
           <div className="text-center mt-8 space-y-4">
             <div className="text-2xl font-bold text-green-600 mb-4">
               🎉 Congratulations! All words completed! 🎉
@@ -597,7 +633,7 @@ const WordLearning: React.FC = () => {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="max-w-3xl mx-auto text-center my-6">
           <button

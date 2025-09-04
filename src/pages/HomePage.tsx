@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import SectionHeader from '../components/UI/SectionHeader';
+import { useBrailleDevice } from '../contexts/BrailleDeviceContext';
 
 const HomePage: React.FC = () => {
+
+  const { isConnected, connectDevice, disconnectDevice } = useBrailleDevice();
+    const [isExpanded, setIsExpanded] = useState(false);
+  
+    const handleToggleConnection = async () => {
+      if (isConnected) {
+        await disconnectDevice();
+      } else {
+        await connectDevice();
+      }
+      setIsExpanded(false);
+    };
+
+    
   // 더 느리고 부드러운 애니메이션 설정
   const fadeInUp = {
     initial: { opacity: 0, y: 120 },
@@ -104,6 +119,25 @@ const HomePage: React.FC = () => {
                     />
                   </svg>
                 </Link>
+                <button
+                  onClick={handleToggleConnection}
+                  className="inline-flex items-center bg-green-600 text-white border-2 border-green-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-lg sm:text-xl font-light hover:bg-green-700 transition-colors ml-4"
+                >
+                  Connect Device
+                  <svg
+                    className="ml-2 h-5 w-5 sm:h-6 sm:w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                    />
+                  </svg>
+                </button>
               </motion.div>
             </motion.div>
 
@@ -409,30 +443,6 @@ const HomePage: React.FC = () => {
             </Link>
           </motion.div>
 
-          {/* Trust indicators */}
-          <motion.div
-            className="mt-12 sm:mt-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            viewport={{ once: false }}
-          >
-            <p className="text-blue-200 text-sm sm:text-base mb-6">Trusted by learners worldwide</p>
-            <div className="flex justify-center items-center space-x-8 text-blue-200">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">1000+</div>
-                <div className="text-sm">Active Learners</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">95%</div>
-                <div className="text-sm">Success Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">24/7</div>
-                <div className="text-sm">Support</div>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </motion.section>
     </div>

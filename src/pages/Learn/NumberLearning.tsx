@@ -314,7 +314,7 @@ const NumberLearning: React.FC = () => {
           {/* Login Status */}
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">📚 Sign in to save your learning progress!</p>
+              <p className="text-yellow-800 text-sm">📚 Sign In to save your learning progress!</p>
             </div>
           )}
 
@@ -559,7 +559,7 @@ const NumberLearning: React.FC = () => {
         </div>
 
         {/* Finish Button */}
-        {gameCompleted && (
+        {/* {gameCompleted && (
           <div className="text-center mt-8 space-y-4">
             <div className="text-2xl font-bold text-green-600 mb-4">
               🎉 Congratulations! All numbers completed! 🎉
@@ -579,7 +579,7 @@ const NumberLearning: React.FC = () => {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="my-10 flex justify-center">
           <button

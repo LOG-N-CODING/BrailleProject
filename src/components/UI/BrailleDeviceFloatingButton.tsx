@@ -3,7 +3,7 @@ import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 
 const BrailleDeviceFloatingButton: React.FC = () => {
   const { isConnected, connectDevice, disconnectDevice } = useBrailleDevice();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);      
 
   const handleToggleConnection = async () => {
     if (isConnected) {

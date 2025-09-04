@@ -83,7 +83,7 @@ const LearnIndex: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.3 }}
@@ -91,11 +91,11 @@ const LearnIndex: React.FC = () => {
             className="text-center mb-12 sm:mb-16"
           >
             <SectionHeader title="Learning Mode" />
-          </motion.div>
+          </motion.div> */}
 
           {/* Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-            {learningModes.map((mode, index) => (
+            {/* {learningModes.map((mode, index) => (
               <motion.div
                 key={mode.id}
                 initial={{ opacity: 0, y: 30 }}
@@ -103,9 +103,9 @@ const LearnIndex: React.FC = () => {
                 viewport={{ once: false, amount: 0.3 }}
                 transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
                 className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
-              >
+              > */}
                 {/* Card Image */}
-                <div className="aspect-[3/2] overflow-hidden bg-gray-900">
+                {/* <div className="aspect-[3/2] overflow-hidden bg-gray-900">
                     <Link
                         to={mode.path}
                     >
@@ -115,10 +115,10 @@ const LearnIndex: React.FC = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </Link>
-                </div>
+                </div> */}
 
                 {/* Card Content */}
-                <div className="flex flex-col p-4 sm:p-6" style={{ height: '280px' }}>
+                {/* <div className="flex flex-col p-4 sm:p-6" style={{ height: '280px' }}>
                     <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">
                         {mode.title}
                     </h3>
@@ -136,9 +136,9 @@ const LearnIndex: React.FC = () => {
                             Let's Learn
                         </Link>
                     </div>
-                </div>
-              </motion.div>
-            ))}
+                </div> */}
+              {/* </motion.div>
+            ))} */}
           </div>
         </div>
       </section>

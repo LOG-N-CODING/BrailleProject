@@ -55,7 +55,7 @@ const LoginPage: React.FC = () => {
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
               <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light text-gray-600 px-4 sm:px-8 lg:px-12 xl:px-20">
-                Login
+                Sign In
               </h2>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
               <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full"></div>
@@ -165,7 +165,7 @@ const LoginPage: React.FC = () => {
                       <span className="text-sm sm:text-base">Signing In...</span>
                     </>
                   ) : (
-                    'Login'
+                    'Sign In'
                   )}
                 </button>
 
@@ -173,7 +173,7 @@ const LoginPage: React.FC = () => {
                   to="/signup"
                   className="w-full inline-block text-center border border-blue-600 text-blue-600 py-2 sm:py-3 rounded-lg text-lg sm:text-xl font-light hover:bg-blue-50 transition-colors"
                 >
-                  Sign up
+                  Sign Up
                 </Link>
 
                 <div className="text-center space-y-1 sm:space-y-2">

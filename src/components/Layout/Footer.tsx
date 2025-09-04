@@ -16,10 +16,6 @@ const Footer: React.FC = () => {
                   <span className='text-white'>Play</span>
                 </Link>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-300">Contact</p>
-              <p className="text-lg font-bold">logncoding@gmail.com</p>
-            </div>
           </div>
 
           {/* Learn Section */}
@@ -55,10 +51,10 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Game</h3>
             <div className="space-y-2">
-              <Link to="/game/typing" className="block text-gray-300 hover:text-white text-sm">
+              <Link to="/games/typing-game" className="block text-gray-300 hover:text-white text-sm">
                 Typing Game
               </Link>
-              <Link to="/game/sprint" className="block text-gray-300 hover:text-white text-sm">
+              <Link to="/games/typing-sprint" className="block text-gray-300 hover:text-white text-sm">
                 Typing Sprint
               </Link>
             </div>

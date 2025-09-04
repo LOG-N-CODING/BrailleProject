@@ -174,9 +174,9 @@ const TypingGame: React.FC = () => {
   };
 
   // 점자 키보드 토글
-  const toggleKeyboard = () => {
-    setKeyboardVisible(!keyboardVisible);
-  };
+  // const toggleKeyboard = () => {
+  //   setKeyboardVisible(!keyboardVisible);
+  // };
 
   // 점자 입력 장치 처리
   useEffect(() => {
@@ -615,7 +615,7 @@ const TypingGame: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* 브레일 키보드 토글 버튼 */}
-      <button
+      {/* <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
         title="Toggle Braille Reference"
@@ -623,7 +623,7 @@ const TypingGame: React.FC = () => {
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </button> */}
       
       <main className="flex-1 flex flex-col items-center py-16">
         <div className="w-full max-w-6xl px-4">
@@ -725,7 +725,7 @@ const TypingGame: React.FC = () => {
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   <span className="text-3xl font-bold text-blue-600 mb-2">{currentTarget}</span>
-                  <span className="text-4xl text-blue-600">{brailleMap[currentTarget] || '⠿'}</span>
+                  {/* <span className="text-4xl text-blue-600">{brailleMap[currentTarget] || '⠿'}</span> */}
                 </motion.div>
               </div>
 
@@ -758,10 +758,9 @@ const TypingGame: React.FC = () => {
           </div>
 
           {/* Braille Display */}
-          <div className="flex justify-center space-x-4 mb-8">
-            {/* History - 왼쪽 3개 (완료된 것들) */}
+          {/* <div className="flex justify-center space-x-4 mb-8">
             {Array.from({ length: 3 }, (_, index) => {
-              const historyChar = gameHistory[2 - index]; // 역순으로 표시
+              const historyChar = gameHistory[2 - index]; 
               return (
                 <div
                   key={`braille-history-${index}`}
@@ -775,12 +774,10 @@ const TypingGame: React.FC = () => {
               );
             })}
 
-            {/* Current Target - 가운데 */}
             <div className="w-16 h-20 rounded-2xl border-2 border-blue-600 flex items-center justify-center shadow-lg bg-white">
               <span className="text-4xl font-bold text-blue-600">{brailleMap[currentTarget] || '⠿'}</span>
             </div>
 
-            {/* Next - 오른쪽 3개 (다음 것들) */}
             {upcomingTargets.slice(0, 3).map((char, index) => (
               <div
                 key={`braille-next-${char}-${index}`}
@@ -790,7 +787,6 @@ const TypingGame: React.FC = () => {
                 <span className="text-4xl font-bold text-blue-600">{brailleMap[char] || '⠿'}</span>
               </div>
             ))}
-            {/* 부족한 Next 칸들은 빈 칸으로 채우기 */}
             {Array.from({ length: Math.max(0, 3 - upcomingTargets.length) }, (_, index) => (
               <div
                 key={`braille-next-empty-${index}`}
@@ -799,7 +795,7 @@ const TypingGame: React.FC = () => {
                 <span className="text-4xl font-bold text-blue-600">⠀</span>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* 점자 입력 표시 */}
           {activeDots.length > 0 && (
@@ -877,7 +873,7 @@ const TypingGame: React.FC = () => {
           </div>
 
           {/* Braille Reference */}
-          {keyboardVisible && (
+          {/* {keyboardVisible && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -888,7 +884,6 @@ const TypingGame: React.FC = () => {
                 Braille Reference
               </h3>
               
-              {/* Alphabet Section */}
               <div className="mb-8">
                 <h4 className="text-lg font-medium text-gray-700 mb-4 text-center">Alphabet</h4>
                 <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-13 gap-2">
@@ -911,7 +906,6 @@ const TypingGame: React.FC = () => {
                 </div>
               </div>
 
-              {/* Numbers Section */}
               <div>
                 <h4 className="text-lg font-medium text-gray-700 mb-4 text-center">Numbers</h4>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-4 max-w-4xl mx-auto">
@@ -932,7 +926,7 @@ const TypingGame: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-          )}
+          )} */}
         </div>
       </main>
     </div>

@@ -38,8 +38,7 @@ const GameIndex: React.FC = () => {
             </div>
             
             <p className="text-lg text-black font-light max-w-3xl mx-auto">
-              Different languages around the world have their own mappings for the alphabet to braille dots. 
-              Here are the "dot combinations" for English Braille.
+              Typing-based games, including practice and sprint modes, help students build accuracy, speed, and fluency in Braille input.
             </p>
           </div>
 

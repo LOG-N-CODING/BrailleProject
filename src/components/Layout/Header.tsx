@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useBrailleDevice } from '../../contexts/BrailleDeviceContext';
 
 const Header: React.FC = () => {
   const [isLearnDropdownOpen, setIsLearnDropdownOpen] = useState(false);
@@ -9,6 +10,18 @@ const Header: React.FC = () => {
   const [isGameDropdownOpen, setIsGameDropdownOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { signOut, user, isAdmin } = useAuth();
+
+  const { isConnected, connectDevice, disconnectDevice } = useBrailleDevice();
+    const [isExpanded, setIsExpanded] = useState(false);
+  
+    const handleToggleConnection = async () => {
+      if (isConnected) {
+        await disconnectDevice();
+      } else {
+        await connectDevice();
+      }
+      setIsExpanded(false);
+    };
 
   if (isAdmin) {
     return (
@@ -25,7 +38,7 @@ const Header: React.FC = () => {
             <span className="ml-2 font-bold text-2xl text-[#2575FF]">Braille</span>
             <span className="font-bold text-2xl text-black">Play</span>
           </Link>
-          {/* 오른쪽: Admin / Sign out */}
+          {/* 오른쪽: Admin / Sign Out */}
           <div className="flex items-center space-x-4">
             {/* Navigation */}
             <nav className="hidden lg:flex space-x-2 xl:space-x-4 2xl:space-x-8 ">
@@ -181,7 +194,8 @@ const Header: React.FC = () => {
               Admin
             </Link>
             <button onClick={signOut} className="text-gray-700 hover:text-primary-500 font-medium">
-              Sign out
+              {/* Sign Out */}
+              <span className="material-icons text-xl sm:text-2xl">logout</span>
             </button>
             <Link
               to="/my"
@@ -285,6 +299,7 @@ const Header: React.FC = () => {
                 >
                   My Page
                 </Link>
+
                 <button
                   onClick={() => {
                     signOut();
@@ -292,7 +307,9 @@ const Header: React.FC = () => {
                   }}
                   className="block text-lg font-medium text-gray-700 hover:text-primary-500"
                 >
-                  Sign out
+                  {/* Sign Out */}
+                  
+                  <span className="material-icons text-xl sm:text-2xl">logout</span>
                 </button>
               </nav>
             </div>
@@ -484,12 +501,36 @@ const Header: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4">
             {user ? (
               <>
+                <button
+                  onClick={handleToggleConnection}
+                  className={`inline-flex gap-2 items-center text-white border px-2 py-1 rounded-md text-sm font-medium transition-colors ml-2 mr-4 ${
+                    isConnected 
+                      ? 'bg-green-600 border-green-600 hover:bg-green-700'
+                      : 'bg-gray-600 border-gray-600 hover:bg-black-700'
+                  }`}
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                    />
+                  </svg>
+                  <span>Connect</span>
+                </button>
                 <Link
                   to="/"
                   onClick={signOut}
                   className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
                 >
-                  Sign out
+                  {/* Sign Out */}
+                  <span className="material-icons text-xl sm:text-2xl">logout</span>
                 </Link>
                 <Link
                   to="/my"
@@ -504,13 +545,13 @@ const Header: React.FC = () => {
                   to="/login"
                   className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
                 >
-                  Sign in
+                  Sign In
                 </Link>
                 <Link
                   to="/signup"
                   className="border border-primary-500 text-primary-500 px-3 py-2 sm:px-4 sm:py-2 rounded-md hover:bg-primary-500 hover:text-white transition-colors text-sm sm:text-base"
                 >
-                  Sign up
+                  Sign Up
                 </Link>
               </>
             )}
@@ -562,7 +603,7 @@ const Header: React.FC = () => {
                   <nav className="flex flex-col space-y-4 mt-8 sm:mt-12">
                     <Link
                       to="/"
-                      className="text-gray-700 hover:text-primary-500 font-medium text-lg"
+                      className="text-gray-700 font-bold text-lg hover:text-primary-500"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Home
@@ -570,7 +611,7 @@ const Header: React.FC = () => {
                     <div>
                       <Link
                         to="/learn"
-                        className="text-gray-700 hover:text-primary-500 font-medium text-lg"
+                        className="text-gray-700 font-bold text-lg hover:text-primary-500"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Learn
@@ -602,7 +643,7 @@ const Header: React.FC = () => {
                     <div>
                       <Link
                         to="/quiz"
-                        className="text-gray-700 font-medium text-lg hover:text-primary-500"
+                        className="text-gray-700 font-bold text-lg hover:text-primary-500"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Quiz
@@ -627,7 +668,7 @@ const Header: React.FC = () => {
                     <div>
                       <Link
                         to="/games"
-                        className="text-gray-600 hover:text-primary-500 py-2 text-base"
+                        className="text-gray-700 font-bold text-lg hover:text-primary-500"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Game
@@ -653,10 +694,10 @@ const Header: React.FC = () => {
                       <>
                         <Link
                           to="/my"
-                          className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
+                          className="text-gray-700 font-bold text-lg hover:text-primary-500"
                           onClick={() => setIsMenuOpen(false)}
                         >
-                          My
+                          My Page
                         </Link>
                         <Link
                           to="/"
@@ -664,9 +705,9 @@ const Header: React.FC = () => {
                             setIsMenuOpen(false);
                             signOut();
                           }}
-                          className="text-gray-700 hover:text-primary-500 font-medium text-sm sm:text-base"
+                          className="text-gray-700 font-bold text-lg hover:text-primary-500"
                         >
-                          Sign out
+                          Sign Out
                         </Link>
                       </>
                     ) : (
@@ -676,14 +717,14 @@ const Header: React.FC = () => {
                           className="border border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white font-medium mt-6 text-center px-4 py-3 rounded-md transition-colors text-base"
                           onClick={() => setIsMenuOpen(false)}
                         >
-                          Sign in
+                          Sign In
                         </Link>
                         <Link
                           to="/signup"
                           className="bg-primary-500 text-white px-4 py-3 rounded-md hover:bg-primary-600 transition-colors mt-3 text-center text-base"
                           onClick={() => setIsMenuOpen(false)}
                         >
-                          Sign up
+                          Sign Up
                         </Link>
                       </>
                     )}

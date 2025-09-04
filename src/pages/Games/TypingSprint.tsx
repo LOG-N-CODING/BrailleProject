@@ -285,9 +285,9 @@ const TypingSprint: React.FC = () => {
   };
 
   // 점자 키보드 토글
-  const toggleKeyboard = () => {
-    setKeyboardVisible(!keyboardVisible);
-  };
+  // const toggleKeyboard = () => {
+  //   setKeyboardVisible(!keyboardVisible);
+  // };
 
   // 점자 입력 장치 처리
   useEffect(() => {
@@ -541,7 +541,7 @@ const TypingSprint: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* 브레일 키보드 토글 버튼 */}
-      <button
+      {/* <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
         title="Toggle Braille Reference"
@@ -549,7 +549,7 @@ const TypingSprint: React.FC = () => {
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </button> */}
       
       <main className="flex-1 flex flex-col items-center py-16">
         <div className="w-full max-w-6xl px-4">
@@ -699,7 +699,7 @@ const TypingSprint: React.FC = () => {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <span className="text-3xl font-bold text-blue-600 mb-2">{currentTarget}</span>
-                <span className="text-4xl text-blue-600">{brailleMap[currentTarget] || '⠿'}</span>
+                {/* <span className="text-4xl text-blue-600">{brailleMap[currentTarget] || '⠿'}</span> */}
               </motion.div>
               </div>
 
@@ -817,7 +817,7 @@ const TypingSprint: React.FC = () => {
           )}
 
           {/* Braille Reference */}
-          {keyboardVisible && (
+          {/* {keyboardVisible && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -828,7 +828,6 @@ const TypingSprint: React.FC = () => {
                 Braille Reference
               </h3>
               
-              {/* Alphabet Section */}
               <div className="mb-8">
                 <h4 className="text-lg font-medium text-gray-700 mb-4 text-center">Alphabet</h4>
                 <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-13 gap-2">
@@ -851,7 +850,6 @@ const TypingSprint: React.FC = () => {
                 </div>
               </div>
 
-              {/* Numbers Section */}
               <div>
                 <h4 className="text-lg font-medium text-gray-700 mb-4 text-center">Numbers</h4>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-4 max-w-4xl mx-auto">
@@ -872,7 +870,7 @@ const TypingSprint: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-          )}
+          )} */}
         </div>
       </main>
     </div>

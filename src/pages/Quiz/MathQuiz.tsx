@@ -34,52 +34,10 @@ const MathQuiz: React.FC = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [score, setScore] = useState<number>(0);
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(60); // 60초 제한
-  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
 
   const { isConnected, setOnDataCallback } = useBrailleDevice();
 
-  // 타이머 효과
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
 
-    if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(time => time - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      handleTimeUp();
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isTimerActive, timeLeft]);
-
-  // 시간 종료 처리
-  const handleTimeUp = () => {
-    setIsTimerActive(false);
-    Swal.fire({
-      title: "Time's Up! ⏰",
-      html: `
-        <div class="text-center">
-          <p class="text-lg mb-4">Time limit has ended!</p>
-          <p class="mb-2">Answer: <strong>${currentQuestion?.answer}</strong></p>
-          <div class="bg-gray-100 p-4 rounded-lg">
-            <p class="text-2xl font-bold text-blue-600 mb-2">${score} / ${totalQuestions}</p>
-            <p class="text-gray-600">Accuracy: ${
-              totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0
-            }%</p>
-          </div>
-        </div>
-      `,
-      icon: 'warning',
-      confirmButtonText: 'Restart',
-      confirmButtonColor: '#3B82F6',
-    }).then(() => {
-      resetGame();
-    });
-  };
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -148,8 +106,6 @@ const MathQuiz: React.FC = () => {
       setCurrentPosition(0);
       setShowHint(false);
       setActiveDots([]);
-      setTimeLeft(60);
-      setIsTimerActive(true);
     },
     [difficulty, remaining]
   );
@@ -158,8 +114,6 @@ const MathQuiz: React.FC = () => {
   const resetGame = () => {
     setScore(0);
     setTotalQuestions(0);
-    setTimeLeft(60);
-    setIsTimerActive(false);
     setRemaining(questions);
     initializeQuestion(questions);
   };
@@ -194,7 +148,6 @@ const MathQuiz: React.FC = () => {
         if (newAnswer === currentQuestion.answer.toString()) {
           // 문제 완성 처리를 직접 수행
           setTimeout(() => {
-            setIsTimerActive(false);
             setScore(prevScore => prevScore + 1);
             setTotalQuestions(prevTotal => prevTotal + 1);
             
@@ -412,9 +365,9 @@ const MathQuiz: React.FC = () => {
   };
 
   // 점자 키보드 토글
-  const toggleKeyboard = () => {
-    setKeyboardVisible(!keyboardVisible);
-  };
+  // const toggleKeyboard = () => {
+  //   setKeyboardVisible(!keyboardVisible);
+  // };
 
   // 수동 숫자 입력
   const handleManualInput = (digit: string) => {
@@ -456,7 +409,7 @@ const MathQuiz: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       {/* 브레일 키보드 토글 버튼 */}
-      <button
+      {/* <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
         title="Toggle Braille Keyboard"
@@ -469,7 +422,7 @@ const MathQuiz: React.FC = () => {
             d="M4 6h16M4 12h16M4 18h16"
           />
         </svg>
-      </button>
+      </button> */}
 
       <div className="max-w-6xl mx-auto px-4">
         {/* 헤더 */}
@@ -500,13 +453,6 @@ const MathQuiz: React.FC = () => {
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <span
-                className={`font-semibold ${timeLeft <= 10 ? 'text-red-600' : 'text-orange-600'}`}
-              >
-                Time: {timeLeft}s
-              </span>
-            </div>
           </div>
         </motion.div>
 
@@ -522,7 +468,6 @@ const MathQuiz: React.FC = () => {
                 key={level}
                 onClick={() => {
                   setDifficulty(level);
-                  setIsTimerActive(false);
                   initializeQuestion();
                 }}
                 className={`px-4 py-2 rounded-md transition-colors ${
@@ -630,7 +575,7 @@ const MathQuiz: React.FC = () => {
         </div>
 
         {/* 점자 숫자 참조 */}
-        {keyboardVisible && (
+        {/* {keyboardVisible && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -659,7 +604,7 @@ const MathQuiz: React.FC = () => {
               })}
             </div>
           </motion.div>
-        )}
+        )} */}
       </div>
     </div>
   );

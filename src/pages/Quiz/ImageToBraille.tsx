@@ -295,9 +295,9 @@ const ImageToBraille: React.FC = () => {
   };
 
   // 점자 키보드 토글
-  const toggleKeyboard = () => {
-    setKeyboardVisible(!keyboardVisible);
-  };
+  // const toggleKeyboard = () => {
+  //   setKeyboardVisible(!keyboardVisible);
+  // };
 
   if (!currentQuiz) {
     return (
@@ -310,7 +310,7 @@ const ImageToBraille: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       {/* 브레일 키보드 토글 버튼 */}
-      <button
+      {/* <button
         onClick={toggleKeyboard}
         className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg shadow-lg transition-colors"
         title="Toggle Braille Keyboard"
@@ -323,7 +323,7 @@ const ImageToBraille: React.FC = () => {
             d="M4 6h16M4 12h16M4 18h16"
           />
         </svg>
-      </button>
+      </button> */}
 
       <div className="max-w-6xl mx-auto px-4">
         {/* 헤더 */}
@@ -446,7 +446,7 @@ const ImageToBraille: React.FC = () => {
         </div>
 
         {/* 점자 알파벳 참조 */}
-        {keyboardVisible && (
+        {/* {keyboardVisible && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -478,7 +478,7 @@ const ImageToBraille: React.FC = () => {
               })}
             </div>
           </motion.div>
-        )}
+        )} */}
       </div>
     </div>
   );

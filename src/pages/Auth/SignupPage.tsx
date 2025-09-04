@@ -407,15 +407,6 @@ const SignupPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Back Button */}
-            <div className="mt-4 sm:mt-6">
-              <Link
-                to="/login"
-                className="w-full bg-white text-blue-600 py-2 sm:py-3 rounded-lg font-light border border-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center text-base sm:text-lg lg:text-xl"
-              >
-                Back
-              </Link>
-            </div>
 
             {/* Login Link */}
             <div className="text-center mt-4 sm:mt-6">
@@ -425,7 +416,7 @@ const SignupPage: React.FC = () => {
                   to="/login"
                   className="text-blue-600 hover:text-blue-500 font-semibold transition-colors"
                 >
-                  Sign in
+                  Sign In
                 </Link>
               </p>
             </div>
