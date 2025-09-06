@@ -7,7 +7,8 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
 
 // 서비스 계정 키를 사용하거나, 이미 초기화된 default 앱 사용
 admin.initializeApp({
-  projectId: 'braille-app-19a76'
+  // projectId: 'braille-app-19a76'
+  projectId: 'brailleplay-432ab'
 });
 
 async function seedAdmin() {
