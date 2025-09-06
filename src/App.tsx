@@ -32,6 +32,7 @@ import ImageToBraille from './pages/Quiz/ImageToBraille';
 import MathQuiz from './pages/Quiz/MathQuiz';
 import QuizIndex from './pages/Quiz/QuizIndex';
 import ScrollToTop from './components/Layout/ScrollToTop';
+import LearnMode from './pages/Learn/LearnMode';
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -76,6 +77,7 @@ function AppContent() {
           >
             {/* Learn */}
             <Route path="learn" element={<LearnIndex />} />
+            <Route path="learn/mode" element={<LearnMode />} />
             <Route path="learn/alphabet-mode" element={<AlphabetModeSelect />} />
             <Route path="learn/alphabet" element={<AlphabetLearning />} />
             <Route path="learn/numbers" element={<NumberLearning />} />

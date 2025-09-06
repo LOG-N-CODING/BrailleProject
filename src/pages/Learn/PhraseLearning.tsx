@@ -603,6 +603,17 @@ const PhraseLearning: React.FC = () => {
           <div>{showBrailleKeyboard ? 'Hide' : 'Show'}</div>
         </button>
 
+        {/* Key Guide */}
+        {/* On the device, Backspace deletes the previous input, Enter submits when Braille is entered, and acts as Space when pressed alone. */}
+        <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-lg p-6 mb-6">
+          <div className="text-center mb-4 text-lg font-semibold text-gray-700">Key Guide</div>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+              <p>
+                On the device, Backspace deletes the previous input, Enter submits when Braille is entered, and acts as Space when pressed alone.
+              </p>
+            </div>
+        </div>
+
         {/* Alphabet Reference */}
         <div className="max-w-[968px] mx-auto bg-white rounded-3xl shadow-lg p-6 mb-6">
           <div className="text-center mb-4 text-lg font-semibold text-gray-700">

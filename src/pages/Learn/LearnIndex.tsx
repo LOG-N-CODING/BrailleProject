@@ -67,7 +67,7 @@ const LearnIndex: React.FC = () => {
               Ready to learn?<br />3 modes are waiting for you!
             </p>
             <Link
-              to="/learn/alphabet"
+              to="/learn/mode"
               className="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-lg sm:text-xl lg:text-2xl font-light hover:bg-white hover:text-gray-900 transition-all duration-300"
             >
               Learn
